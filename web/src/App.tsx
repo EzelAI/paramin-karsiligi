@@ -1,67 +1,104 @@
 import { useEffect, useState } from 'react';
-import { useInvestments } from './api/hooks';
+import { useInvestments, usePlans } from './api/hooks';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { InstallmentView } from './components/InstallmentView';
 import { InvestmentView } from './components/InvestmentView';
+import { PlanView } from './components/PlanView';
 import { SettingsView } from './components/SettingsView';
-import { Sidebar, type Page } from './components/Sidebar';
+import { SECTIONS, Sidebar, type Section } from './components/Sidebar';
 import { readItem, writeItem } from './lib/storage';
 
-const SELECTED_KEY = 'altin.selectedInvestment';
+const SECTION_KEY = 'altin.section';
+const SELECTED_KEYS: Record<Section, string> = { bought: 'altin.selectedInvestment', planned: 'altin.selectedPlan' };
 
-function readSelected(): number | null {
-  const v = readItem<number>(SELECTED_KEY);
+function readSelected(section: Section): number | null {
+  const v = readItem<number>(SELECTED_KEYS[section]);
   return Number.isInteger(v) && v! > 0 ? v : null;
 }
 
+/** Bölümün seçili kaydı; silindiyse ya da hiç seçilmediyse ilki */
+function useSelection(section: Section, items: { id: number }[] | undefined) {
+  const [selectedId, setSelectedId] = useState<number | null>(() => readSelected(section));
+
+  useEffect(() => {
+    if (!items) return;
+    if (selectedId === null || !items.some((i) => i.id === selectedId)) setSelectedId(items[0]?.id ?? null);
+  }, [items, selectedId]);
+
+  useEffect(() => {
+    if (selectedId !== null) writeItem(SELECTED_KEYS[section], selectedId);
+  }, [section, selectedId]);
+
+  return [selectedId, setSelectedId] as const;
+}
+
 export function App() {
-  const { data: investments = [], isLoading } = useInvestments();
-  const [selectedId, setSelectedId] = useState<number | null>(readSelected);
-  const [page, setPage] = useState<Page>('investment');
+  const investments = useInvestments();
+  const plans = usePlans();
+  const [section, setSection] = useState<Section>(() => (readItem<Section>(SECTION_KEY) === 'planned' ? 'planned' : 'bought'));
+  const [showSettings, setShowSettings] = useState(false);
+  const [investmentId, setInvestmentId] = useSelection('bought', investments.data);
+  const [planId, setPlanId] = useSelection('planned', plans.data);
 
-  // Seçili yatırım silindiyse ya da hiç seçilmediyse ilkini seç
-  useEffect(() => {
-    if (isLoading) return;
-    if (selectedId === null || !investments.some((i) => i.id === selectedId)) {
-      setSelectedId(investments[0]?.id ?? null);
-    }
-  }, [investments, isLoading, selectedId]);
+  useEffect(() => writeItem(SECTION_KEY, section), [section]);
 
-  useEffect(() => {
-    if (selectedId !== null) writeItem(SELECTED_KEY, selectedId);
-  }, [selectedId]);
+  const list = section === 'bought' ? investments : plans;
+  const selectedId = section === 'bought' ? investmentId : planId;
+  const select = (id: number) => {
+    (section === 'bought' ? setInvestmentId : setPlanId)(id);
+    setShowSettings(false);
+  };
 
   return (
     <div className="layout">
       <Sidebar
-        investments={investments}
-        selectedId={page === 'investment' ? selectedId : null}
-        onSelect={(id) => (setSelectedId(id), setPage('investment'))}
-        page={page}
-        onOpenPage={setPage}
+        section={section}
+        onSection={(s) => (setSection(s), setShowSettings(false))}
+        items={list.data ?? []}
+        selectedId={showSettings ? null : selectedId}
+        onSelect={select}
+        settingsOpen={showSettings}
+        onOpenSettings={() => setShowSettings(true)}
       />
       <main className="main">
-        {page === 'settings' ? (
+        {showSettings ? (
           <ErrorBoundary key="settings">
-            <SettingsView onClose={() => setPage('investment')} />
-          </ErrorBoundary>
-        ) : page === 'installment' ? (
-          <ErrorBoundary key="installment">
-            <InstallmentView />
+            <SettingsView onClose={() => setShowSettings(false)} />
           </ErrorBoundary>
         ) : selectedId !== null ? (
-          <ErrorBoundary key={selectedId}>
-            <InvestmentView investmentId={selectedId} />
+          <ErrorBoundary key={`${section}-${selectedId}`}>
+            {section === 'bought' ? <InvestmentView investmentId={selectedId} /> : <PlanView planId={selectedId} />}
           </ErrorBoundary>
+        ) : list.error ? (
+          <p className="error">{list.error.message}</p>
         ) : (
-          !isLoading && (
-            <div className="empty">
-              <h2>Henüz yatırım yok</h2>
-              <p>Soldan bir yatırım ekleyin (ör. "Ev"), sonra ödemelerinizi girin.</p>
-            </div>
-          )
+          !list.isLoading && <EmptySection section={section} />
         )}
       </main>
+    </div>
+  );
+}
+
+function EmptySection({ section }: { section: Section }) {
+  return (
+    <div className="empty">
+      <div className="eyebrow">{SECTIONS[section].label}</div>
+      {section === 'bought' ? (
+        <>
+          <h2>Henüz yatırım yok</h2>
+          <p>
+            Aldığınız bir şey için (ör. "Ev") soldan bir yatırım ekleyin, sonra ödemelerinizi girin. O paranın altın, döviz,
+            faiz ve hisselerde bugün ne kadar edeceğini gösteririz.
+          </p>
+        </>
+      ) : (
+        <>
+          <h2>Henüz alacağınız bir ürün yok</h2>
+          <p>
+            Almayı düşündüğünüz bir ürünü (ör. "Araba") soldan ekleyin, peşin ve taksitli fiyatını girin. Peşin parayı faizde
+            tutup taksitleri oradan ödeseydiniz hangisinin daha ucuza geleceğini hesaplarız.
+          </p>
+        </>
+      )}
     </div>
   );
 }

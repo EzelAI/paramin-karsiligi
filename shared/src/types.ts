@@ -44,6 +44,29 @@ export interface BulkPaymentInput {
   note?: string | null;
 }
 
+/**
+ * Alınacak bir ürün için peşin/taksit teklifi ("Alacaklarım"). Tutarlar TL; girilmemiş alanlar null.
+ * Hesap shared/src/installment.ts içinde, arayüzde yapılır.
+ */
+export interface PurchasePlan {
+  id: number;
+  name: string;
+  cashPrice: number | null;
+  downPayment: number | null;
+  count: number | null;
+  /** amount aylık taksit mi, peşinat dahil taksitli toplam mı */
+  amountMode: 'monthly' | 'total';
+  amount: number | null;
+  /** İlk taksit kaç ay sonra (0 = bugün) */
+  firstAfterMonths: 0 | 1;
+  /** Elle girilen yıllık net getiri ve enflasyon (%); null ise güncel değer kullanılır */
+  returnPct: number | null;
+  inflationPct: number | null;
+  createdAt: string;
+}
+
+export type PurchasePlanInput = Omit<PurchasePlan, 'id' | 'createdAt'>;
+
 export interface PriceStatus {
   assetId: string;
   firstDate: IsoDate | null;

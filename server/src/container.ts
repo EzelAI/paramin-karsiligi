@@ -4,6 +4,7 @@ import { TcmbCpiProvider, TcmbPolicyRateProvider } from './providers/tcmb';
 import { YahooFinanceProvider } from './providers/yahoo';
 import { InvestmentRepository } from './repositories/investments';
 import { PaymentRepository } from './repositories/payments';
+import { PlanRepository } from './repositories/plans';
 import { PriceRepository } from './repositories/prices';
 import { SettingsRepository } from './repositories/settings';
 import { AnalysisService } from './services/analysisService';
@@ -15,6 +16,7 @@ export function createContainer(opts: { dbPath?: string; log?: (msg: string) => 
   const investments = new InvestmentRepository(db);
   const payments = new PaymentRepository(db);
   const settings = new SettingsRepository(db);
+  const plans = new PlanRepository(db);
   const providers = {
     yahoo: new YahooFinanceProvider(),
     tcmb: new TcmbPolicyRateProvider(),
@@ -26,7 +28,7 @@ export function createContainer(opts: { dbPath?: string; log?: (msg: string) => 
     log: opts.log,
   });
   const analysis = new AnalysisService(payments, prices);
-  return { db, investments, payments, settings, prices, analysis };
+  return { db, investments, payments, plans, settings, prices, analysis };
 }
 
 export type Container = ReturnType<typeof createContainer>;

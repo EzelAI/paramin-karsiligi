@@ -7,12 +7,14 @@ import {
   monthRange,
   paymentSchema,
   PriceCalculator,
+  purchasePlanSchema,
   settingsSchema,
   withDefaults,
   type Investment,
   type Payment,
   type PaymentInput,
   type PriceSnapshot,
+  type PurchasePlan,
   type Settings,
 } from '@paramin-karsiligi/shared';
 import type { ZodType } from 'zod';
@@ -32,14 +34,15 @@ interface Store {
   nextId: number;
   investments: Investment[];
   payments: Payment[];
+  plans: PurchasePlan[];
   settings: Settings;
 }
 
 const store: Store = (() => {
   const saved = readItem<Store>(STORE_KEY);
   return saved
-    ? { ...saved, settings: withDefaults(saved.settings) }
-    : { nextId: 1, investments: [], payments: [], settings: DEFAULT_SETTINGS };
+    ? { ...saved, plans: saved.plans ?? [], settings: withDefaults(saved.settings) }
+    : { nextId: 1, investments: [], payments: [], plans: [], settings: DEFAULT_SETTINGS };
 })();
 
 const persist = () => writeItem(STORE_KEY, store);
@@ -56,6 +59,12 @@ function requireInvestment(id: number): Investment {
   const inv = store.investments.find((i) => i.id === id);
   if (!inv) throw new Error('Yatırım bulunamadı');
   return inv;
+}
+
+function requirePlan(id: number): PurchasePlan {
+  const plan = store.plans.find((p) => p.id === id);
+  if (!plan) throw new Error('Ürün bulunamadı');
+  return plan;
 }
 
 function requirePayment(id: number): Payment {
@@ -174,6 +183,26 @@ export const localApi: Api = {
     const data = await buildInvestmentWorkbook(inv, analysis, store.settings);
     const type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
     saveFile(new Blob([data], { type }), exportFilename(inv));
+  },
+
+  listPlans: async () => [...store.plans],
+  getPlan: async (id) => requirePlan(id),
+  createPlan: async (input) => {
+    const plan: PurchasePlan = { ...parse(purchasePlanSchema, input), id: newId(), createdAt: new Date().toISOString() };
+    store.plans.push(plan);
+    persist();
+    return plan;
+  },
+  updatePlan: async (id, input) => {
+    const plan = requirePlan(id);
+    Object.assign(plan, parse(purchasePlanSchema, input));
+    persist();
+    return plan;
+  },
+  deletePlan: async (id) => {
+    requirePlan(id);
+    store.plans = store.plans.filter((p) => p.id !== id);
+    persist();
   },
 
   getSettings: async () => store.settings,

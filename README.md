@@ -7,8 +7,10 @@ Bir yatırım için yaptığınız TL ödemelerini (peşinat, aylık taksitler) 
 - O parayla altın biriktirseydim bugün kaç TL'm olurdu?
 - Dolar ya da Euro biriktirseydim, faize yatırsaydım ya da ABD/BIST hisseleri alsaydım ne olurdu?
 
-Ayrıca **Peşin mi, taksit mi?** sayfası, gelecekte alınacak bir ürünün peşin fiyatıyla taksitli teklifini karşılaştırır
-(bkz. aşağıda).
+Uygulama iki bölümden oluşur:
+
+- **Aldıklarım**: yapılmış ödemelerin altın, döviz, faiz, enflasyon ve hisselere göre bugünkü karşılığı (yukarıdaki sorular).
+- **Alacaklarım**: almayı düşündüğünüz ürünler için peşin fiyat ile taksitli teklifin karşılaştırması (bkz. aşağıda).
 
 ## Çalıştırma
 
@@ -80,7 +82,7 @@ diğer varlıklarla aynı şekilde işler.
 - **Reel**: her ödeme TÜFE ile bugünün parasına çevrilerek hesaplanan getiri (yıllık; 1 yıldan kısaysa toplam).
 - Bugünden sonraya tarihli ödemeler **planlanan** olarak kaydedilir ve tarihi gelene kadar hesaplara katılmaz.
 
-### Peşin mi, taksit mi?
+### Alacaklarım: peşin mi, taksit mi?
 
 Peşin fiyat, peşinat, taksit sayısı ve aylık taksit (ya da taksitli toplam) girilir. Model: peşin fiyat kadar paranız var;
 taksitli alırsanız kalanını mevduatta tutup taksitleri oradan ödersiniz (`shared/src/installment.ts`).
@@ -90,7 +92,7 @@ taksitli alırsanız kalanını mevduatta tutup taksitleri oradan ödersiniz (`s
 - **Teklifin faizi**: taksitlerin bugünkü değerini peşin fiyata eşitleyen aylık oran (yıllık bileşik olarak da).
 - **Bugünün parasıyla**: taksitler beklenen enflasyonla bugünün parasına çevrilir.
 - Getiri ve enflasyon boş bırakılırsa güncel net mevduat faizi (politika faizi + fark, stopaj sonrası) ve son 12 aylık
-  TÜFE kullanılır. Girilen değerler tarayıcıda saklanır.
+  TÜFE kullanılır. Her ürün veritabanında saklanır (`purchase_plans`), form değiştikçe otomatik kaydedilir.
 
 ### Hesaplama varsayımları (arayüzden değiştirilebilir)
 
@@ -138,6 +140,8 @@ web/      React + TypeScript + Vite, React Query, Recharts
 | PUT/DELETE | `/api/payments/:id`               |                                          |
 | GET    | `/api/investments/:id/analysis`       | Altın/döviz karşılıkları, aylık seri     |
 | GET    | `/api/investments/:id/export.xlsx`    | Excel dosyası                            |
+| GET/POST | `/api/plans`                       | Alacaklarım listesi / yeni ürün          |
+| GET/PUT/DELETE | `/api/plans/:id`             | Ürün ve peşin/taksit teklifi             |
 | GET    | `/api/prices/status`                  | Güncel fiyatlar                          |
 | POST   | `/api/prices/refresh`                 | Fiyatları zorla güncelle                 |
 | GET    | `/api/prices/:assetId/monthly`        | Aylık fiyat serisi                       |

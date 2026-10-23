@@ -8,6 +8,8 @@ import type {
   Payment,
   PaymentInput,
   PriceStatus,
+  PurchasePlan,
+  PurchasePlanInput,
   Settings,
 } from '@paramin-karsiligi/shared';
 import { saveFile } from '../lib/download';
@@ -43,6 +45,12 @@ export const httpApi = {
   getAnalysis: (id: number) => request<InvestmentAnalysis>('GET', `/api/investments/${id}/analysis`),
   // Dosya adını sunucu belirler (Content-Disposition)
   exportExcel: async (id: number) => saveFile(`/api/investments/${id}/export.xlsx`, ''),
+
+  listPlans: () => request<PurchasePlan[]>('GET', '/api/plans'),
+  getPlan: (id: number) => request<PurchasePlan>('GET', `/api/plans/${id}`),
+  createPlan: (input: PurchasePlanInput) => request<PurchasePlan>('POST', '/api/plans', input),
+  updatePlan: (id: number, input: PurchasePlanInput) => request<PurchasePlan>('PUT', `/api/plans/${id}`, input),
+  deletePlan: (id: number) => request<void>('DELETE', `/api/plans/${id}`),
 
   getSettings: () => request<Settings>('GET', '/api/settings'),
   saveSettings: (s: Settings) => request<Settings>('PUT', '/api/settings', s),

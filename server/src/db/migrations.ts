@@ -66,4 +66,24 @@ export const migrations: { version: number; name: string; sql: string }[] = [
       DELETE FROM price_sync WHERE symbol LIKE '%:adj' OR symbol = 'GC=F';
     `,
   },
+  {
+    version: 3,
+    name: 'purchase-plans',
+    sql: `
+      -- Alınacak ürünler için peşin/taksit teklifleri; tutarlar kuruş, girilmemiş alanlar NULL
+      CREATE TABLE purchase_plans (
+        id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+        name               TEXT NOT NULL,
+        cash_kurus         INTEGER,
+        down_kurus         INTEGER,
+        installment_count  INTEGER,
+        amount_mode        TEXT NOT NULL DEFAULT 'monthly' CHECK (amount_mode IN ('monthly', 'total')),
+        amount_kurus       INTEGER,
+        first_after_months INTEGER NOT NULL DEFAULT 1,
+        return_pct         REAL,
+        inflation_pct      REAL,
+        created_at         TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+    `,
+  },
 ];

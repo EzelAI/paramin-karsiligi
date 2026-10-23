@@ -48,3 +48,36 @@ export const settingsSchema = z.object({
   depositSpreadPts: z.number().min(-50).max(50),
   dividendWithholdingPct: z.object({ us: pct, tr: pct }),
 });
+
+const optionalAmount = z
+  .number()
+  .min(0, 'Tutar negatif olamaz')
+  .max(1e12)
+  .transform((v) => Math.round(v * 100) / 100)
+  .nullable();
+const optionalRate = z.number().min(-100).max(1000).nullable();
+
+/** Alınacak ürün: eksik alanlar null olabilir, kullanıcı doldurdukça kaydedilir */
+export const purchasePlanSchema = z.object({
+  name: z.string().trim().min(1, 'Ad gerekli').max(100),
+  cashPrice: optionalAmount,
+  downPayment: optionalAmount,
+  count: z.number().int().min(1).max(360).nullable(),
+  amountMode: z.enum(['monthly', 'total']),
+  amount: optionalAmount,
+  firstAfterMonths: z.union([z.literal(0), z.literal(1)]),
+  returnPct: optionalRate,
+  inflationPct: optionalRate,
+});
+
+export const newPurchasePlan = (name: string) => ({
+  name,
+  cashPrice: null,
+  downPayment: null,
+  count: 12,
+  amountMode: 'monthly' as const,
+  amount: null,
+  firstAfterMonths: 1 as const,
+  returnPct: null,
+  inflationPct: null,
+});

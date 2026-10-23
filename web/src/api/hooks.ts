@@ -1,4 +1,12 @@
-import type { AssetId, BulkPaymentInput, InvestmentInput, PaymentInput, Settings } from '@paramin-karsiligi/shared';
+import type {
+  AssetId,
+  BulkPaymentInput,
+  InvestmentInput,
+  PaymentInput,
+  PurchasePlan,
+  PurchasePlanInput,
+  Settings,
+} from '@paramin-karsiligi/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './client';
 
@@ -9,6 +17,8 @@ export const keys = {
   priceStatus: ['prices', 'status'] as const,
   monthly: (assetId: AssetId, from?: string) => ['prices', 'monthly', assetId, from ?? ''] as const,
   settings: ['settings'] as const,
+  plans: ['plans'] as const,
+  plan: (id: number) => ['plans', id] as const,
 };
 
 export const useInvestments = () => useQuery({ queryKey: keys.investments, queryFn: api.listInvestments });
@@ -94,6 +104,43 @@ export function useSaveSettings() {
       // Varsayımlar değişince tüm hesaplar ve fiyat durumu yeniden alınır
       qc.invalidateQueries({ queryKey: keys.investments });
       qc.invalidateQueries({ queryKey: keys.priceStatus });
+    },
+  });
+}
+
+// Alacaklarım
+export const usePlans = () => useQuery({ queryKey: keys.plans, queryFn: api.listPlans });
+
+export const usePlan = (id: number) => useQuery({ queryKey: keys.plan(id), queryFn: () => api.getPlan(id) });
+
+export function useCreatePlan() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: PurchasePlanInput) => api.createPlan(input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.plans }),
+  });
+}
+
+/** Form her değiştiğinde kaydedilir; listeyi (ad) ve önbellekteki kaydı günceller, formu yeniden yüklemez */
+export function useUpdatePlan(id: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: PurchasePlanInput) => api.updatePlan(id, input),
+    onSuccess: (saved: PurchasePlan) => {
+      qc.setQueryData(keys.plan(id), saved);
+      qc.setQueryData<PurchasePlan[]>(keys.plans, (list) => list?.map((p) => (p.id === id ? saved : p)));
+    },
+  });
+}
+
+export function useDeletePlan() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => api.deletePlan(id),
+    onSuccess: (_: void, id: number) => {
+      // Listeden hemen çıkar; silinen kaydın kendisi yeniden istenmesin (404)
+      qc.setQueryData<PurchasePlan[]>(keys.plans, (list) => list?.filter((p) => p.id !== id));
+      qc.invalidateQueries({ queryKey: keys.plans, exact: true });
     },
   });
 }

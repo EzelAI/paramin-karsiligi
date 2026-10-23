@@ -7,6 +7,7 @@ import type { Container } from './container';
 import { HttpError } from './errors';
 import { investmentRoutes } from './routes/investments';
 import { paymentRoutes } from './routes/payments';
+import { planRoutes } from './routes/plans';
 import { priceRoutes } from './routes/prices';
 import { settingsRoutes } from './routes/settings';
 
@@ -24,6 +25,7 @@ export async function buildApp(c: Container) {
 
   investmentRoutes(app, c);
   paymentRoutes(app, c);
+  planRoutes(app, c);
   priceRoutes(app, c);
   settingsRoutes(app, c);
 

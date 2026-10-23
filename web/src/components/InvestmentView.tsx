@@ -50,20 +50,23 @@ export function InvestmentView({ investmentId }: { investmentId: number }) {
   return (
     <div className="inv-view">
       <header className="inv-header">
-        {editing ? (
-          <input
-            className="title-input"
-            autoFocus
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onBlur={saveName}
-            onKeyDown={(e) => (e.key === 'Enter' ? saveName() : e.key === 'Escape' && setEditing(false))}
-          />
-        ) : (
-          <h1 onDoubleClick={() => (setName(investment.name), setEditing(true))} title="Yeniden adlandırmak için çift tıklayın">
-            {investment.name}
-          </h1>
-        )}
+        <div>
+          <div className="eyebrow">Aldıklarım · bugünkü karşılığı</div>
+          {editing ? (
+            <input
+              className="title-input"
+              autoFocus
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onBlur={saveName}
+              onKeyDown={(e) => (e.key === 'Enter' ? saveName() : e.key === 'Escape' && setEditing(false))}
+            />
+          ) : (
+            <h1 onDoubleClick={() => (setName(investment.name), setEditing(true))} title="Yeniden adlandırmak için çift tıklayın">
+              {investment.name}
+            </h1>
+          )}
+        </div>
         <div className="header-actions">
           <button className="btn ghost" onClick={() => (setName(investment.name), setEditing(true))}>
             Yeniden adlandır

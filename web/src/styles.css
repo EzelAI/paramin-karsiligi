@@ -569,7 +569,54 @@ ul.notes {
   opacity: 0.85;
 }
 
-/* Peşin mi, taksit mi? */
+/* Bölümler: Aldıklarım / Alacaklarım */
+.section-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  margin-top: 18px;
+}
+.section-switch button {
+  all: unset;
+  cursor: pointer;
+  text-align: center;
+  padding: 7px 4px;
+  border-radius: 7px;
+  font-size: 14px;
+  opacity: 0.75;
+}
+.section-switch button:hover {
+  opacity: 1;
+}
+.section-switch button.active {
+  background: var(--gold);
+  color: #1d1a12;
+  font-weight: 650;
+  opacity: 1;
+}
+.section-switch button:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+.section-hint {
+  margin: 8px 2px 4px;
+  font-size: 12px;
+  line-height: 1.4;
+  opacity: 0.65;
+}
+.eyebrow {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--gold);
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+/* Alacaklarım: peşin mi, taksit mi? */
 .installment .intro {
   margin: 0;
   max-width: 760px;

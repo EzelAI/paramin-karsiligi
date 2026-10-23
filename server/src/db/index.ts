@@ -1,9 +1,13 @@
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
-import { DatabaseSync } from 'node:sqlite';
+import type * as Sqlite from 'node:sqlite';
 import { migrations } from './migrations';
 
-export type Db = DatabaseSync;
+// node:sqlite require ile yüklenir: Vitest (Vite) 'node:' önekini kaldırıp modülü bulamıyor
+const { DatabaseSync } = createRequire(import.meta.url)('node:sqlite') as typeof Sqlite;
+
+export type Db = Sqlite.DatabaseSync;
 
 export function openDatabase(file: string): Db {
   if (file !== ':memory:') fs.mkdirSync(path.dirname(file), { recursive: true });

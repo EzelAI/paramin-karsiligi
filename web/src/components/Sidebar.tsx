@@ -1,31 +1,54 @@
-import { ASSETS, type AssetId, type Investment } from '@paramin-karsiligi/shared';
+import { ASSETS, newPurchasePlan, type AssetId } from '@paramin-karsiligi/shared';
 import { useState, type FormEvent } from 'react';
-import { useCreateInvestment, usePriceStatus, useRefreshPrices } from '../api/hooks';
+import { useCreateInvestment, useCreatePlan, usePriceStatus, useRefreshPrices } from '../api/hooks';
 import { formatDate, formatNumber, formatTL } from '../lib/format';
 import { IS_STATIC } from '../lib/storage';
 
 const SIDEBAR_ASSETS: AssetId[] = ['GRAM_GOLD', 'USD', 'EUR', 'FAIZ', 'XU100'];
 const MONTHS = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
 
-/** Ana alanda gösterilen sayfa: seçili yatırım, varsayımlar ya da peşin/taksit hesabı */
-export type Page = 'investment' | 'settings' | 'installment';
+/**
+ * İki ayrı hesap: aldıklarım (yapılmış ödemelerin bugünkü karşılığı) ve alacaklarım (peşin/taksit karşılaştırması)
+ */
+export type Section = 'bought' | 'planned';
+
+export const SECTIONS: Record<Section, { label: string; hint: string; placeholder: string }> = {
+  bought: {
+    label: 'Aldıklarım',
+    hint: 'Ödediğiniz paranın altın, döviz, faiz ve hisselere göre bugünkü karşılığı',
+    placeholder: 'Yeni yatırım (ör. Ev)',
+  },
+  planned: {
+    label: 'Alacaklarım',
+    hint: 'Alacağınız ürün için peşin mi, taksit mi daha avantajlı',
+    placeholder: 'Ürün (ör. Araba)',
+  },
+};
 
 interface Props {
-  investments: Investment[];
+  section: Section;
+  onSection: (s: Section) => void;
+  items: { id: number; name: string }[];
+  /** Ayarlar açıkken null */
   selectedId: number | null;
   onSelect: (id: number) => void;
-  page: Page;
-  onOpenPage: (page: Page) => void;
+  settingsOpen: boolean;
+  onOpenSettings: () => void;
 }
 
-export function Sidebar({ investments, selectedId, onSelect, page, onOpenPage }: Props) {
+export function Sidebar({ section, onSection, items, selectedId, onSelect, settingsOpen, onOpenSettings }: Props) {
   const [name, setName] = useState('');
-  const create = useCreateInvestment();
+  const createInvestment = useCreateInvestment();
+  const createPlan = useCreatePlan();
+  const create = section === 'bought' ? createInvestment : createPlan;
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
-    create.mutate({ name: name.trim() }, { onSuccess: (inv) => (setName(''), onSelect(inv.id)) });
+    const n = name.trim();
+    if (!n) return;
+    const done = (item: { id: number }) => (setName(''), onSelect(item.id));
+    if (section === 'bought') createInvestment.mutate({ name: n }, { onSuccess: done });
+    else createPlan.mutate(newPurchasePlan(n), { onSuccess: done });
   };
 
   return (
@@ -40,30 +63,42 @@ export function Sidebar({ investments, selectedId, onSelect, page, onOpenPage }:
         </p>
       )}
 
-      <nav className="inv-list">
-        {investments.map((inv) => (
+      <div className="section-switch" role="tablist">
+        {(Object.keys(SECTIONS) as Section[]).map((s) => (
           <button
-            key={inv.id}
-            className={`inv-item${inv.id === selectedId ? ' active' : ''}`}
-            onClick={() => onSelect(inv.id)}
+            key={s}
+            role="tab"
+            aria-selected={s === section}
+            className={s === section ? 'active' : ''}
+            onClick={() => onSection(s)}
           >
-            {inv.name}
+            {SECTIONS[s].label}
+          </button>
+        ))}
+      </div>
+      <p className="section-hint">{SECTIONS[section].hint}</p>
+
+      <nav className="inv-list">
+        {items.map((item) => (
+          <button
+            key={item.id}
+            className={`inv-item${item.id === selectedId ? ' active' : ''}`}
+            onClick={() => onSelect(item.id)}
+          >
+            {item.name}
           </button>
         ))}
       </nav>
 
       <form className="new-inv" onSubmit={submit}>
-        <input placeholder="Yeni yatırım (ör. Ev)" value={name} onChange={(e) => setName(e.target.value)} />
+        <input placeholder={SECTIONS[section].placeholder} value={name} onChange={(e) => setName(e.target.value)} />
         <button type="submit" className="btn primary" disabled={create.isPending || !name.trim()}>
           Ekle
         </button>
       </form>
       {create.error && <p className="error">{create.error.message}</p>}
 
-      <button className={`inv-item settings-link${page === 'installment' ? ' active' : ''}`} onClick={() => onOpenPage('installment')}>
-        ⚖ Peşin mi, taksit mi?
-      </button>
-      <button className={`inv-item settings-link${page === 'settings' ? ' active' : ''}`} onClick={() => onOpenPage('settings')}>
+      <button className={`inv-item settings-link${settingsOpen ? ' active' : ''}`} onClick={onOpenSettings}>
         ⚙ Hesaplama varsayımları
       </button>
 

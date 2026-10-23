@@ -17,6 +17,11 @@ export interface Settings {
   depositSpreadPts: number;
   /** Temettü stopajı (%) */
   dividendWithholdingPct: { us: number; tr: number };
+  /**
+   * Alacaklarım için 12 ay sonrası tahminleri. null ise forecasts.ts içindeki yayımlanmış tahminlerin ortalaması
+   * kullanılır.
+   */
+  forecast: { goldUsdOz: number | null; usdTry: number | null };
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -25,6 +30,7 @@ export const DEFAULT_SETTINGS: Settings = {
   depositWithholdingPct: 15,
   depositSpreadPts: 0,
   dividendWithholdingPct: { us: 20, tr: 15 },
+  forecast: { goldUsdOz: null, usdTry: null },
 };
 
 /** Eksik alanları varsayılanlarla tamamlar (eski kayıtlar ya da yeni eklenen ayarlar için) */
@@ -34,5 +40,6 @@ export function withDefaults(partial: Partial<Settings> | null | undefined): Set
     ...partial,
     tradingCostPct: { ...DEFAULT_SETTINGS.tradingCostPct, ...partial?.tradingCostPct },
     dividendWithholdingPct: { ...DEFAULT_SETTINGS.dividendWithholdingPct, ...partial?.dividendWithholdingPct },
+    forecast: { ...DEFAULT_SETTINGS.forecast, ...partial?.forecast },
   };
 }

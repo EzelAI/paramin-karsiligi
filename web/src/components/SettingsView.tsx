@@ -1,6 +1,15 @@
-import { ASSET_GROUPS, DEFAULT_SETTINGS, type AssetGroup, type Settings } from '@paramin-karsiligi/shared';
+import {
+  ASSET_GROUPS,
+  DEFAULT_SETTINGS,
+  FORECASTS_COMPILED_AT,
+  GOLD_FORECAST_AVERAGE,
+  USDTRY_FORECAST,
+  type AssetGroup,
+  type Settings,
+} from '@paramin-karsiligi/shared';
 import { useEffect, useState, type FormEvent } from 'react';
 import { useSaveSettings, useSettings } from '../api/hooks';
+import { formatDate, formatNumber } from '../lib/format';
 
 /** Hesaplama varsayımları: alım-satım maliyeti, altın primi, stopajlar */
 export function SettingsView({ onClose }: { onClose: () => void }) {
@@ -111,7 +120,52 @@ export function SettingsView({ onClose }: { onClose: () => void }) {
           />
         </div>
       </section>
+
+      <section className="card">
+        <h2>Gelecek tahminleri (Alacaklarım)</h2>
+        <p className="muted small">
+          Alacaklarım ekranında peşin parayı altında ya da dolarda tutma hesabı için 12 ay sonrası tahminleri. Boş
+          bırakırsanız yayımlanmış tahminlerin ortalaması kullanılır ({formatDate(FORECASTS_COMPILED_AT)} itibarıyla: ons
+          ${formatNumber(GOLD_FORECAST_AVERAGE, 0)}, dolar/TL {formatNumber(USDTRY_FORECAST.value)}).
+        </p>
+        <div className="form-row">
+          <OptionalNumberField
+            label="Ons altın, 12 ay sonra ($)"
+            value={draft.forecast.goldUsdOz}
+            placeholder={formatNumber(GOLD_FORECAST_AVERAGE, 0)}
+            onChange={(v) => set({ forecast: { ...draft.forecast, goldUsdOz: v } })}
+          />
+          <OptionalNumberField
+            label="Dolar/TL, 12 ay sonra"
+            value={draft.forecast.usdTry}
+            placeholder={formatNumber(USDTRY_FORECAST.value)}
+            onChange={(v) => set({ forecast: { ...draft.forecast, usdTry: v } })}
+          />
+        </div>
+      </section>
     </form>
+  );
+}
+
+/** Boş bırakılabilen alan: boşsa null (varsayılan tahmin kullanılır) */
+function OptionalNumberField(props: {
+  label: string;
+  value: number | null;
+  placeholder: string;
+  onChange: (v: number | null) => void;
+}) {
+  return (
+    <label className="narrow-field wide">
+      {props.label}
+      <input
+        type="number"
+        step="any"
+        min={0.01}
+        placeholder={`${props.placeholder} (ortalama)`}
+        value={props.value ?? ''}
+        onChange={(e) => props.onChange(e.target.value === '' ? null : Number(e.target.value))}
+      />
+    </label>
   );
 }
 

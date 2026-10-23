@@ -47,6 +47,12 @@ export const settingsSchema = z.object({
   depositWithholdingPct: pct,
   depositSpreadPts: z.number().min(-50).max(50),
   dividendWithholdingPct: z.object({ us: pct, tr: pct }),
+  forecast: z
+    .object({
+      goldUsdOz: z.number().positive('Tahmin sıfırdan büyük olmalı').max(1e6).nullable(),
+      usdTry: z.number().positive('Tahmin sıfırdan büyük olmalı').max(1e6).nullable(),
+    })
+    .default({ goldUsdOz: null, usdTry: null }),
 });
 
 const optionalAmount = z

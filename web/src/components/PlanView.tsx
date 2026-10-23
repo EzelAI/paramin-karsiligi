@@ -8,8 +8,9 @@ import {
   type PurchasePlanInput,
 } from '@paramin-karsiligi/shared';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { HoldingComparison, type Market } from './HoldingComparison';
 import { useDeletePlan, useMonthlyPrices, usePlan, usePriceStatus, useSettings, useUpdatePlan } from '../api/hooks';
-import { formatMonth, formatNumber, formatPct, formatRate, formatTL, parseAmount } from '../lib/format';
+import { formatMonth, formatMonthFromNow, formatNumber, formatPct, formatRate, formatTL, parseAmount } from '../lib/format';
 
 /** Fark peşin fiyatın bu oranından küçükse "neredeyse aynı" denir */
 const SAME_THRESHOLD = 0.005;
@@ -76,12 +77,6 @@ function toInput(f: Form, fallbackName: string): PurchasePlanInput {
     returnPct: rateOrNull(f.returnPct),
     inflationPct: rateOrNull(f.inflationPct),
   };
-}
-
-/** Bu aydan k ay sonrası, "Oca 2027" */
-function monthLabel(k: number) {
-  const now = new Date();
-  return k === 0 ? 'Bugün' : formatMonth(toIsoDate(new Date(now.getFullYear(), now.getMonth() + k, 1)).slice(0, 7));
 }
 
 /** Alacaklarım: alınacak bir ürünün peşin fiyatı ile taksitli teklifinin karşılaştırması */
@@ -261,7 +256,7 @@ function PlanEditor({ plan }: { plan: PurchasePlan }) {
         </p>
       </section>
 
-      {problem ? <p className="muted">{problem}</p> : result && <Result result={result} offer={offer} returnPct={returnPct!} inflationPct={inflationPct} />}
+      {problem ? <p className="muted">{problem}</p> : result && <Result result={result} offer={offer} returnPct={returnPct!} inflationPct={inflationPct} market={current.market} />}
     </div>
   );
 }
@@ -304,16 +299,31 @@ function useCurrentRates() {
     if (last && prev) inflationPct = (last.price / prev.price - 1) * 100;
   }
 
+  // Gram fiyatı yerel primi içerir; onsa çevirirken çıkarılır
+  const gram = status.data?.find((s) => s.assetId === 'GRAM_GOLD')?.lastPrice;
+  const usdTry = status.data?.find((s) => s.assetId === 'USD')?.lastPrice;
+  const market: Market | null =
+    gram && usdTry && settings.data
+      ? { goldOz: (gram / (1 + settings.data.goldPremiumPct / 100)) * (31.1034768 / usdTry), usdTry, settings: settings.data }
+      : null;
+
   return {
     policyPct,
     returnPct,
     inflationPct,
     cpiMonth,
+    market,
     loading: status.isLoading || settings.isLoading,
   };
 }
 
-function Result(props: { result: InstallmentComparison; offer: InstallmentOffer; returnPct: number; inflationPct: number | null }) {
+function Result(props: {
+  result: InstallmentComparison;
+  offer: InstallmentOffer;
+  returnPct: number;
+  inflationPct: number | null;
+  market: Market | null;
+}) {
   const { result: r, offer } = props;
   const same = Math.abs(r.advantage) < offer.cashPrice * SAME_THRESHOLD;
   const installmentWins = r.advantage > 0;
@@ -373,6 +383,8 @@ function Result(props: { result: InstallmentComparison; offer: InstallmentOffer;
         eşit olsa bile (sıfır faizli taksit) aradaki süre boyunca paranız faiz kazandığı için taksit genelde avantajlıdır.
       </p>
 
+      {props.market && <HoldingComparison offer={offer} result={r} market={props.market} />}
+
       <section className="card">
         <h2>Ödeme planı</h2>
         <div className="table-wrap">
@@ -405,7 +417,7 @@ function Result(props: { result: InstallmentComparison; offer: InstallmentOffer;
               {r.rows.map((row, i) => (
                 <tr key={i}>
                   <td>
-                    {monthLabel(row.month)} <span className="muted small">({i + 1}. taksit)</span>
+                    {formatMonthFromNow(row.month)} <span className="muted small">({i + 1}. taksit)</span>
                   </td>
                   <td className="num">{formatTL(row.amount)}</td>
                   <td className="num">{formatTL(row.presentValue)}</td>

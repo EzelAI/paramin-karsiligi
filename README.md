@@ -94,6 +94,20 @@ taksitli alırsanız kalanını mevduatta tutup taksitleri oradan ödersiniz (`s
 - Getiri ve enflasyon boş bırakılırsa güncel net mevduat faizi (politika faizi + fark, stopaj sonrası) ve son 12 aylık
   TÜFE kullanılır. Her ürün veritabanında saklanır (`purchase_plans`), form değiştikçe otomatik kaydedilir.
 
+#### Peşin parayı nerede tutsaydınız? (tahmine dayalı)
+
+Peşin para mevduat yerine gram altında ya da dolarda tutulup taksitler oradan ödenseydi son taksitten sonra ne kalacağı
+gösterilir. Gelecek fiyatları kimse bilemez; tek kuruma güvenmek yerine **yayımlanmış tahminlerin ortalaması** kullanılır
+ve varsayım ekranda kaynaklarıyla yazılır:
+
+- Ons altın: Reuters anketi, Bank of America, Goldman Sachs ve UBS'nin yaklaşık 12 ay sonrası tahminlerinin ortalaması.
+- Dolar/TL: TCMB Piyasa Katılımcıları Anketi, 12 ay sonrası beklenti.
+- Fiyatların bugünden bu hedeflere düzenli arttığı, 12 aydan uzun taksitlerde aynı yıllık hızla sürdüğü varsayılır.
+- Ayrıca altının mevduatla başa baş olması için onsun ulaşması gereken fiyat gösterilir (tahmin gerektirmez).
+
+Tahminler `shared/src/forecasts.ts` içinde tutulur; güncellemek için listeyi ve `FORECASTS_COMPILED_AT` tarihini
+değiştirmek yeterlidir. Kullanıcı Hesaplama varsayımları ekranından kendi tahminini girebilir.
+
 ### Hesaplama varsayımları (arayüzden değiştirilebilir)
 
 | Ayar | Varsayılan |
@@ -103,6 +117,7 @@ taksitli alırsanız kalanını mevduatta tutup taksitleri oradan ödersiniz (`s
 | Mevduat stopajı | %15 |
 | Mevduat faizi − politika faizi | 0 puan |
 | Temettü stopajı | ABD %20, BIST %15 |
+| Ons altın ve dolar/TL, 12 ay sonra (Alacaklarım) | Boş: yayımlanmış tahminlerin ortalaması |
 
 > Bilinen sınırlar: Stopaj oranları dönemlere göre değişmiştir, uygulama tek oran kullanır. Politika faizi, fiili fonlama
 > faizinden ayrıştığı dönemlerde (ör. 2011–2013 faiz koridoru) mevduat getirisini tam yansıtmayabilir. ABD hisseleri aynı

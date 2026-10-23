@@ -107,25 +107,33 @@ export function impliedMonthlyRate(offer: InstallmentOffer): number | null {
   return (lo + hi) / 2;
 }
 
+/**
+ * Peşin paranın (peşinat düşülmüş) aylık sabit getirili bir yerde tutulup taksitlerin oradan ödendiği durum.
+ * costRate: alırken kesilen alım-satım maliyeti (ör. altın için 0,01). Her taksitten sonraki bakiyeyi döndürür.
+ */
+export function simulateHolding(offer: InstallmentOffer, monthlyRate: number, costRate = 0): number[] {
+  let balance = (offer.cashPrice - offer.downPayment) * (1 - costRate);
+  let lastMonth = 0;
+  return monthsOf(offer).map((month) => {
+    balance *= Math.pow(1 + monthlyRate, month - lastMonth);
+    lastMonth = month;
+    balance -= offer.installment;
+    return balance;
+  });
+}
+
 export function compareInstallment(offer: InstallmentOffer, assumptions: InstallmentAssumptions): InstallmentComparison {
   const r = monthlyFromDailyCompounded(assumptions.annualReturnPct);
   const p = assumptions.annualInflationPct == null ? null : monthlyFromEffective(assumptions.annualInflationPct);
 
-  const rows: InstallmentRow[] = [];
-  let balance = offer.cashPrice - offer.downPayment;
-  let lastMonth = 0;
-  for (const month of monthsOf(offer)) {
-    balance *= Math.pow(1 + r, month - lastMonth);
-    lastMonth = month;
-    balance -= offer.installment;
-    rows.push({
-      month,
-      amount: offer.installment,
-      presentValue: discount(offer.installment, r, month),
-      realValue: p == null ? null : discount(offer.installment, p, month),
-      balanceAfter: balance,
-    });
-  }
+  const balances = simulateHolding(offer, r);
+  const rows: InstallmentRow[] = monthsOf(offer).map((month, i) => ({
+    month,
+    amount: offer.installment,
+    presentValue: discount(offer.installment, r, month),
+    realValue: p == null ? null : discount(offer.installment, p, month),
+    balanceAfter: balances[i]!,
+  }));
 
   const totalPrice = offer.downPayment + offer.count * offer.installment;
   const presentValue = offer.downPayment + rows.reduce((s, row) => s + row.presentValue, 0);
@@ -137,7 +145,7 @@ export function compareInstallment(offer: InstallmentOffer, assumptions: Install
     markupPct: offer.cashPrice > 0 ? (totalPrice - offer.cashPrice) / offer.cashPrice : 0,
     presentValue,
     advantage: offer.cashPrice - presentValue,
-    endBalance: balance,
+    endBalance: balances.at(-1) ?? offer.cashPrice - offer.downPayment,
     impliedMonthlyRate: monthly,
     impliedAnnualRate: monthly == null ? null : Math.pow(1 + monthly, 12) - 1,
     returnMonthlyRate: r,

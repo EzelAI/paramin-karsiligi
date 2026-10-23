@@ -40,6 +40,15 @@ export function formatMonth(ym: string) {
   return `${MONTHS[Number(m) - 1]} ${y}`;
 }
 
+/** Bu aydan k ay sonrası "Oca 2027"; 0 ise "Bugün" */
+export function formatMonthFromNow(k: number) {
+  if (k === 0) return 'Bugün';
+  const d = new Date();
+  d.setDate(1);
+  d.setMonth(d.getMonth() + k);
+  return formatMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+}
+
 /**
  * Türkçe yazılmış tutarı sayıya çevirir: "50.000" → 50000, "1.250,50" → 1250.5, "2 milyon" desteklenmez.
  * Virgül varsa ondalık ayracıdır; yoksa noktalar binlik ayracı sayılır.

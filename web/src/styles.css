@@ -14,6 +14,10 @@
   --down: #c62828;
   --warn-bg: #fff4d6;
   --radius: 12px;
+  /* Alacaklarım grafiği; varlık renkleriyle aynı aile, koyu temada ayrı adımlar (renk körlüğü kontrolünden geçti) */
+  --c-faiz: #8e24aa;
+  --c-gold: #d4a017;
+  --c-usd: #2e7d32;
   color-scheme: light;
 }
 
@@ -35,6 +39,9 @@
     --up: #66bb6a;
     --down: #ef5350;
     --warn-bg: #3a3120;
+    --c-faiz: #a855c8;
+    --c-gold: #b8860b;
+    --c-usd: #2f9e6e;
     color-scheme: dark;
   }
 }
@@ -654,6 +661,93 @@ ul.notes {
 }
 .verdict.bad .hero-value {
   color: var(--down);
+}
+
+.hint-top {
+  margin: -6px 0 10px;
+}
+.holding-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.holding-card {
+  border: 1px solid var(--border);
+  border-top: 3px solid;
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.holding-card.best {
+  background: var(--gold-soft);
+}
+.holding-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.badge {
+  font-size: 11px;
+  font-weight: 650;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+.holding-chart {
+  height: 300px;
+}
+.chart-tooltip {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+}
+.tooltip-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.tooltip-row .key {
+  width: 12px;
+  height: 2px;
+  border-radius: 1px;
+}
+.legend-text {
+  color: var(--text);
+  font-size: 13px;
+}
+.table-toggle {
+  margin-top: 6px;
+}
+.table-toggle summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--muted);
+}
+.assumption {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-left: 3px solid var(--gold);
+  border-radius: 8px;
+  background: var(--bg);
+  font-size: 13px;
+}
+.assumption ul {
+  margin: 6px 0 8px;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.assumption p {
+  margin: 0;
 }
 
 @media (max-width: 860px) {

@@ -8,3 +8,4 @@ export * from './assetPricing';
 export * from './seriesMath';
 export * from './priceCalc';
 export * from './schemas';
+export * from './installment';

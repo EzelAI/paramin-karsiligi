@@ -1,4 +1,4 @@
-import type { BulkPaymentInput, InvestmentInput, PaymentInput, Settings } from '@paramin-karsiligi/shared';
+import type { AssetId, BulkPaymentInput, InvestmentInput, PaymentInput, Settings } from '@paramin-karsiligi/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './client';
 
@@ -7,6 +7,7 @@ export const keys = {
   investment: (id: number) => ['investments', id] as const,
   analysis: (id: number) => ['investments', id, 'analysis'] as const,
   priceStatus: ['prices', 'status'] as const,
+  monthly: (assetId: AssetId, from?: string) => ['prices', 'monthly', assetId, from ?? ''] as const,
   settings: ['settings'] as const,
 };
 
@@ -19,6 +20,9 @@ export const useAnalysis = (id: number | null) =>
   useQuery({ queryKey: keys.analysis(id ?? 0), queryFn: () => api.getAnalysis(id!), enabled: id !== null });
 
 export const usePriceStatus = () => useQuery({ queryKey: keys.priceStatus, queryFn: api.priceStatus });
+
+export const useMonthlyPrices = (assetId: AssetId, from?: string) =>
+  useQuery({ queryKey: keys.monthly(assetId, from), queryFn: () => api.monthlyPrices(assetId, from) });
 
 /** Yatırım ve altındaki her şeyi (ödemeler, analiz) tazeler */
 function useInvalidateInvestments() {
@@ -73,6 +77,7 @@ export function useRefreshPrices() {
     mutationFn: api.refreshPrices,
     onSuccess: (status) => {
       qc.setQueryData(keys.priceStatus, status);
+      qc.invalidateQueries({ queryKey: ['prices', 'monthly'] });
       qc.invalidateQueries({ queryKey: keys.investments });
     },
   });

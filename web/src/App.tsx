@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useInvestments } from './api/hooks';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { InstallmentView } from './components/InstallmentView';
 import { InvestmentView } from './components/InvestmentView';
 import { SettingsView } from './components/SettingsView';
-import { Sidebar } from './components/Sidebar';
+import { Sidebar, type Page } from './components/Sidebar';
 import { readItem, writeItem } from './lib/storage';
 
 const SELECTED_KEY = 'altin.selectedInvestment';
@@ -16,7 +17,7 @@ function readSelected(): number | null {
 export function App() {
   const { data: investments = [], isLoading } = useInvestments();
   const [selectedId, setSelectedId] = useState<number | null>(readSelected);
-  const [showSettings, setShowSettings] = useState(false);
+  const [page, setPage] = useState<Page>('investment');
 
   // Seçili yatırım silindiyse ya da hiç seçilmediyse ilkini seç
   useEffect(() => {
@@ -34,15 +35,19 @@ export function App() {
     <div className="layout">
       <Sidebar
         investments={investments}
-        selectedId={showSettings ? null : selectedId}
-        onSelect={(id) => (setSelectedId(id), setShowSettings(false))}
-        onOpenSettings={() => setShowSettings(true)}
-        settingsOpen={showSettings}
+        selectedId={page === 'investment' ? selectedId : null}
+        onSelect={(id) => (setSelectedId(id), setPage('investment'))}
+        page={page}
+        onOpenPage={setPage}
       />
       <main className="main">
-        {showSettings ? (
+        {page === 'settings' ? (
           <ErrorBoundary key="settings">
-            <SettingsView onClose={() => setShowSettings(false)} />
+            <SettingsView onClose={() => setPage('investment')} />
+          </ErrorBoundary>
+        ) : page === 'installment' ? (
+          <ErrorBoundary key="installment">
+            <InstallmentView />
           </ErrorBoundary>
         ) : selectedId !== null ? (
           <ErrorBoundary key={selectedId}>

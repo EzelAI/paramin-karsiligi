@@ -7,6 +7,9 @@ Bir yatırım için yaptığınız TL ödemelerini (peşinat, aylık taksitler) 
 - O parayla altın biriktirseydim bugün kaç TL'm olurdu?
 - Dolar ya da Euro biriktirseydim, faize yatırsaydım ya da ABD/BIST hisseleri alsaydım ne olurdu?
 
+Ayrıca **Peşin mi, taksit mi?** sayfası, gelecekte alınacak bir ürünün peşin fiyatıyla taksitli teklifini karşılaştırır
+(bkz. aşağıda).
+
 ## Çalıştırma
 
 Gereksinim: **Node.js 22.13+** (yerleşik `node:sqlite` kullanılır).
@@ -77,6 +80,18 @@ diğer varlıklarla aynı şekilde işler.
 - **Reel**: her ödeme TÜFE ile bugünün parasına çevrilerek hesaplanan getiri (yıllık; 1 yıldan kısaysa toplam).
 - Bugünden sonraya tarihli ödemeler **planlanan** olarak kaydedilir ve tarihi gelene kadar hesaplara katılmaz.
 
+### Peşin mi, taksit mi?
+
+Peşin fiyat, peşinat, taksit sayısı ve aylık taksit (ya da taksitli toplam) girilir. Model: peşin fiyat kadar paranız var;
+taksitli alırsanız kalanını mevduatta tutup taksitleri oradan ödersiniz (`shared/src/installment.ts`).
+
+- **Taksitlerin bugünkü değeri**: her taksit, paranın getirisiyle (yıllık net faiz, günlük bileşik) bugüne indirgenir.
+  Peşin fiyattan düşükse taksit avantajlıdır; fark ve son taksitten sonra mevduatta kalan tutar gösterilir.
+- **Teklifin faizi**: taksitlerin bugünkü değerini peşin fiyata eşitleyen aylık oran (yıllık bileşik olarak da).
+- **Bugünün parasıyla**: taksitler beklenen enflasyonla bugünün parasına çevrilir.
+- Getiri ve enflasyon boş bırakılırsa güncel net mevduat faizi (politika faizi + fark, stopaj sonrası) ve son 12 aylık
+  TÜFE kullanılır. Girilen değerler tarayıcıda saklanır.
+
 ### Hesaplama varsayımları (arayüzden değiştirilebilir)
 
 | Ayar | Varsayılan |
@@ -95,7 +110,7 @@ diğer varlıklarla aynı şekilde işler.
 ## Mimari
 
 ```
-shared/   Ortak tipler, varlık tanımları (assets.ts), saf hesaplama motoru (analysis.ts), fiyat serisi
+shared/   Ortak tipler, varlık tanımları (assets.ts), saf hesaplama motoru (analysis.ts, installment.ts), fiyat serisi
           hesapları (assetPricing.ts, seriesMath.ts, priceCalc.ts), doğrulama (schemas.ts), Excel (excelExport.ts) + testler
 server/   Fastify API + SQLite
   src/db/              bağlantı ve sıralı migration'lar

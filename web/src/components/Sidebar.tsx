@@ -7,15 +7,18 @@ import { IS_STATIC } from '../lib/storage';
 const SIDEBAR_ASSETS: AssetId[] = ['GRAM_GOLD', 'USD', 'EUR', 'FAIZ', 'XU100'];
 const MONTHS = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
 
+/** Ana alanda gösterilen sayfa: seçili yatırım, varsayımlar ya da peşin/taksit hesabı */
+export type Page = 'investment' | 'settings' | 'installment';
+
 interface Props {
   investments: Investment[];
   selectedId: number | null;
   onSelect: (id: number) => void;
-  onOpenSettings: () => void;
-  settingsOpen: boolean;
+  page: Page;
+  onOpenPage: (page: Page) => void;
 }
 
-export function Sidebar({ investments, selectedId, onSelect, onOpenSettings, settingsOpen }: Props) {
+export function Sidebar({ investments, selectedId, onSelect, page, onOpenPage }: Props) {
   const [name, setName] = useState('');
   const create = useCreateInvestment();
 
@@ -57,7 +60,10 @@ export function Sidebar({ investments, selectedId, onSelect, onOpenSettings, set
       </form>
       {create.error && <p className="error">{create.error.message}</p>}
 
-      <button className={`inv-item settings-link${settingsOpen ? ' active' : ''}`} onClick={onOpenSettings}>
+      <button className={`inv-item settings-link${page === 'installment' ? ' active' : ''}`} onClick={() => onOpenPage('installment')}>
+        ⚖ Peşin mi, taksit mi?
+      </button>
+      <button className={`inv-item settings-link${page === 'settings' ? ' active' : ''}`} onClick={() => onOpenPage('settings')}>
         ⚙ Hesaplama varsayımları
       </button>
 

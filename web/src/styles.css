@@ -64,7 +64,8 @@ h2 {
   margin-bottom: 12px;
 }
 
-input {
+input,
+select {
   font: inherit;
   color: inherit;
   background: var(--surface);
@@ -73,7 +74,8 @@ input {
   padding: 8px 10px;
   min-width: 0;
 }
-input:focus {
+input:focus,
+select:focus {
   outline: 2px solid var(--gold);
   outline-offset: -1px;
 }
@@ -565,6 +567,46 @@ ul.notes {
 .settings-link {
   font-size: 14px;
   opacity: 0.85;
+}
+
+/* Peşin mi, taksit mi? */
+.installment .intro {
+  margin: 0;
+  max-width: 760px;
+}
+.installment .hint {
+  margin: 10px 0 0;
+  max-width: 760px;
+}
+.form-row label.wide {
+  width: 220px;
+}
+.label-select {
+  all: unset;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--muted);
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+.verdict {
+  border-left: 4px solid var(--border);
+}
+.verdict p {
+  margin: 6px 0 0;
+  max-width: 760px;
+}
+.verdict.good {
+  border-left-color: var(--up);
+}
+.verdict.good .hero-value {
+  color: var(--up);
+}
+.verdict.bad {
+  border-left-color: var(--down);
+}
+.verdict.bad .hero-value {
+  color: var(--down);
 }
 
 @media (max-width: 860px) {

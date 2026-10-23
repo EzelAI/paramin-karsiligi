@@ -1,0 +1,47 @@
+# GitHub Pages sürümü: arayüzü derler, güncel fiyatları çeker ve yayınlar.
+# Her gün otomatik çalışır; Actions sekmesinden "Run workflow" ile elle de çalıştırılabilir.
+name: GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '0 4 * * *' # her gün 07:00 (Türkiye)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build:static
+      # Fiyatlar çekilemezse iş durur ve önceki yayın olduğu gibi kalır
+      - run: npm run snapshot -- ../web/dist/data/prices.json
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

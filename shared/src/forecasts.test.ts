@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { GOLD_FORECAST_AVERAGE, GOLD_FORECASTS, goldBreakEvenOz, monthlyGrowth } from './forecasts';
+import {
+  FORECAST_STALE_DAYS,
+  FORECASTS_COMPILED_AT,
+  forecastAgeDays,
+  GOLD_FORECAST_AVERAGE,
+  GOLD_FORECASTS,
+  goldBreakEvenOz,
+  monthlyGrowth,
+} from './forecasts';
 import { monthlyFromDailyCompounded, simulateHolding } from './installment';
 
 describe('tahmin varsayımları', () => {
@@ -8,6 +16,13 @@ describe('tahmin varsayımları', () => {
     expect(GOLD_FORECAST_AVERAGE).toBeGreaterThanOrEqual(Math.min(...values));
     expect(GOLD_FORECAST_AVERAGE).toBeLessThanOrEqual(Math.max(...values));
     expect(GOLD_FORECAST_AVERAGE).toBeCloseTo(values.reduce((a, b) => a + b) / values.length, 9);
+  });
+
+  it('tahminlerin yaşı', () => {
+    const compiled = new Date(Date.parse(FORECASTS_COMPILED_AT));
+    expect(forecastAgeDays(compiled)).toBe(0);
+    const later = new Date(compiled.getTime() + (FORECAST_STALE_DAYS + 1) * 86_400_000);
+    expect(forecastAgeDays(later)).toBeGreaterThan(FORECAST_STALE_DAYS);
   });
 
   it('aylık büyüme 12 ayda hedefe ulaşır', () => {

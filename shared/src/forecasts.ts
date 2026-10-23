@@ -15,6 +15,14 @@ export interface ForecastSource {
 /** Tahminlerin derlendiği tarih */
 export const FORECASTS_COMPILED_AT = '2026-10-24';
 
+/** Tahminler bu kadar günden eskiyse ekranda güncel olmayabileceği uyarısı gösterilir */
+export const FORECAST_STALE_DAYS = 90;
+
+/** Tahminlerin derlendiği tarihten bu yana geçen gün */
+export function forecastAgeDays(today: Date = new Date()): number {
+  return Math.floor((today.getTime() - Date.parse(FORECASTS_COMPILED_AT)) / 86_400_000);
+}
+
 /** Tahminlerin ulaştığı ufuk (ay); daha uzun taksitlerde aynı yıllık artış sürdürülür */
 export const FORECAST_HORIZON_MONTHS = 12;
 

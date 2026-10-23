@@ -133,6 +133,9 @@ function PriceStatusPanel() {
           Son TÜFE: {MONTHS[Number(cpi.sourceLastDate.slice(5, 7)) - 1]} {cpi.sourceLastDate.slice(0, 4)}
         </p>
       )}
+      <p className="muted small source-note">
+        Kaynak: TCMB, Yahoo Finance. Veriler gecikmeli olabilir, bilgi amaçlıdır.
+      </p>
       {IS_STATIC ? (
         <p className="muted small">Fiyatlar her gün otomatik güncellenir.</p>
       ) : (

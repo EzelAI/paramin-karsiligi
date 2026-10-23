@@ -124,6 +124,35 @@ değiştirmek yeterlidir. Kullanıcı Hesaplama varsayımları ekranından kendi
 > günün USD/TRY kapanışıyla çevrilir; saat farkı küçük günlük sapmalara yol açar. BIST serilerinde tek günde %25'ten büyük
 > değişimler "düzeltilmemiş bölünme olabilir" uyarısıyla gösterilir, otomatik düzeltilmez.
 
+## Yasal uyarı
+
+Paramın Karşılığı yalnızca bilgilendirme ve kişisel hesaplama amacıyla hazırlanmıştır; bir ürünü ya da yatırımı almanızı,
+satmanızı veya elde tutmanızı önermez. Hesaplamalar, grafikler ve tahminler 6362 sayılı Sermaye Piyasası Kanunu
+kapsamında yatırım danışmanlığı ya da yatırım tavsiyesi değildir. Geçmiş getiriler gelecekteki getirilerin göstergesi
+değildir; gelecek tahminleri üçüncü kişilerin görüşleridir ve gerçekleşeceği garanti edilmez. Fiyat verileri TCMB ve
+Yahoo Finance gibi kaynaklardan otomatik alınır, gecikmeli ya da hatalı olabilir. Uygulama "olduğu gibi" sunulur;
+kullanımından doğabilecek zararlardan geliştirici sorumlu tutulamaz. Uygulama hiçbir banka, aracı kurum ya da veri
+sağlayıcıyla bağlantılı değildir.
+
+Uygulama ücretsizdir, ticari amaç taşımaz ve kişisel veri toplamaz (çerez, analitik ya da dış istek yoktur). Fiyat
+verileri yalnızca kişisel ve ticari olmayan kullanım içindir; haklar ilgili veri sağlayıcılarına aittir.
+
+Alınan diğer önlemler:
+
+- GitHub Pages sürümü arama motorlarına kapalıdır (`noindex`); yalnızca bağlantıyı bilenler kullanır.
+- Derlenen sayfada içerik güvenlik politikası (CSP) vardır: yalnızca sitenin kendi dosyaları yüklenir, dışarıya istek
+  yapılamaz (`web/vite.config.ts`).
+- Altın ve kur tahminleri 90 günden eskiyse ekranda uyarı çıkar.
+- Bağımlılıklar için Dependabot güvenlik güncellemeleri açıktır (`.github/dependabot.yml`).
+
+Metnin tamamı `shared/src/disclaimer.ts` içindedir; arayüzde her sayfanın altında ve ilk girişte, Excel dosyasında
+"Varsayımlar" sayfasında gösterilir.
+
+## Lisans
+
+Bu depo herkese açık olarak görüntülenebilir ancak bir açık kaynak lisansı verilmemiştir; tüm hakları saklıdır. Kod ve
+uygulama hiçbir garanti olmaksızın "olduğu gibi" sunulur.
+
 ## Mimari
 
 ```

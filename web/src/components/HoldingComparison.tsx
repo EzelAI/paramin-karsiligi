@@ -1,4 +1,6 @@
 import {
+  FORECAST_STALE_DAYS,
+  forecastAgeDays,
   FORECASTS_COMPILED_AT,
   GOLD_FORECAST_AVERAGE,
   GOLD_FORECASTS,
@@ -134,7 +136,7 @@ export function HoldingComparison({ offer, result, market }: { offer: Installmen
             <div key={o.id} className={`holding-card${o.id === best ? ' best' : ''}`} style={{ borderTopColor: o.color }}>
               <div className="holding-head">
                 <span className="label">{o.name}</span>
-                {o.id === best && <span className="badge">En çok kalan</span>}
+                {o.id === best && <span className="badge" title="Yukarıdaki varsayımlara göre">En çok kalan</span>}
               </div>
               <div className={`compare-value ${v < 0 ? 'down' : ''}`}>{formatTL(v)}</div>
               <div className="muted small">
@@ -217,6 +219,12 @@ export function HoldingComparison({ offer, result, market }: { offer: Installmen
 
       <div className="assumption">
         <strong>Varsayım ({formatDate(FORECASTS_COMPILED_AT)} itibarıyla)</strong>
+        {forecastAgeDays() > FORECAST_STALE_DAYS && (
+          <p className="warning">
+            Bu tahminler {Math.floor(forecastAgeDays() / 30)} aydan eski ve güncel olmayabilir. Güncel tahminleri
+            kontrol edin ya da kendi tahmininizi girin.
+          </p>
+        )}
         <ul>
           <li>
             Ons altın 12 ay sonra <strong>{usd(ozTarget)}</strong>
@@ -248,7 +256,8 @@ export function HoldingComparison({ offer, result, market }: { offer: Installmen
         </ul>
         <p className="muted small">
           Tahminler sık değişir ve çoğu zaman tutmaz: LBMA'nın 1997–2024 incelemesine göre analist ortalaması tek bir yılda
-          ortalama %9 yanılıyor. Kendi tahmininizi <em>Hesaplama varsayımları</em> ekranından girebilirsiniz.
+          ortalama %9 yanılıyor. Kendi tahmininizi <em>Hesaplama varsayımları</em> ekranından girebilirsiniz. Bu
+          karşılaştırma bir senaryo hesabıdır, altın, döviz ya da mevduat için alım-satım önerisi değildir.
         </p>
       </div>
     </section>

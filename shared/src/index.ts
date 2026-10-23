@@ -10,3 +10,4 @@ export * from './priceCalc';
 export * from './schemas';
 export * from './installment';
 export * from './forecasts';
+export * from './disclaimer';

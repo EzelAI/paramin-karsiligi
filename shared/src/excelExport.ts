@@ -1,6 +1,7 @@
 import ExcelJS from 'exceljs';
 import type { AssetResult, InvestmentAnalysis } from './analysis';
 import { ASSET_GROUPS, ASSET_IDS, ASSETS, getAsset, PRIMARY_ASSET } from './assets';
+import { DISCLAIMER_FULL } from './disclaimer';
 import type { Settings } from './settings';
 import type { Investment } from './types';
 
@@ -129,6 +130,9 @@ export async function buildInvestmentWorkbook(
   assumptions.addRow({ k: 'Mevduat faizi − politika faizi (puan)', v: settings.depositSpreadPts });
   assumptions.addRow({ k: 'Temettü stopajı ABD (%)', v: settings.dividendWithholdingPct.us });
   assumptions.addRow({ k: 'Temettü stopajı BIST (%)', v: settings.dividendWithholdingPct.tr });
+  assumptions.addRow({});
+  assumptions.addRow({ k: 'Yasal uyarı' }).font = { bold: true };
+  for (const p of DISCLAIMER_FULL) assumptions.addRow({ k: p }).getCell(1).alignment = { wrapText: true, vertical: 'top' };
 
   for (const ws of [summary, payments, monthly, assumptions]) {
     ws.getRow(1).font = { bold: true };

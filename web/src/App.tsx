@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useInvestments, usePlans } from './api/hooks';
+import { DisclaimerFooter, DisclaimerNotice } from './components/Disclaimer';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { InvestmentView } from './components/InvestmentView';
 import { PlanView } from './components/PlanView';
@@ -73,7 +74,9 @@ export function App() {
         ) : (
           !list.isLoading && <EmptySection section={section} />
         )}
+        <DisclaimerFooter />
       </main>
+      <DisclaimerNotice />
     </div>
   );
 }

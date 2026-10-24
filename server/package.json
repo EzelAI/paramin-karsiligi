@@ -12,13 +12,13 @@
   },
   "dependencies": {
     "@paramin-karsiligi/shared": "*",
-    "@fastify/static": "^8.0.2",
+    "@fastify/static": "^10.1.6",
     "fastify": "^5.1.0",
-    "zod": "^3.23.8"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@types/node": "^22.9.0",
+    "@types/node": "^26.6.5",
     "tsx": "^4.19.2",
-    "vitest": "^2.1.4"
+    "vitest": "^5.0.5"
   }
 }

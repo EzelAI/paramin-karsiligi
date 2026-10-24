@@ -58,7 +58,7 @@ export function GrowthChart({ timeline, partial }: { timeline: TimelinePoint[]; 
             <XAxis dataKey="month" tickFormatter={formatMonth} tick={{ fill: 'var(--muted)', fontSize: 12 }} minTickGap={24} />
             <YAxis tickFormatter={formatTLShort} tick={{ fill: 'var(--muted)', fontSize: 12 }} width={72} />
             <Tooltip
-              formatter={(v: number) => formatTL(v)}
+              formatter={(v) => formatTL(Number(v))}
               labelFormatter={formatMonth}
               itemSorter={(item) => -(Number(item.value) || 0)}
               contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8 }}

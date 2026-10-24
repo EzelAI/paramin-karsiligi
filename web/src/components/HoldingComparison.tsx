@@ -23,7 +23,6 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-  type TooltipProps,
 } from 'recharts';
 import { formatDate, formatMonthFromNow, formatNumber, formatRate, formatTL, formatTLShort } from '../lib/format';
 
@@ -265,7 +264,7 @@ export function HoldingComparison({ offer, result, market }: { offer: Installmen
 }
 
 /** Değer önde, ad arkada; seri rengi yalnızca kısa çizgi anahtarında */
-function ChartTooltip({ active, payload, options }: TooltipProps<number, string> & { options: Option[] }) {
+function ChartTooltip({ active, payload, options }: { active?: boolean; payload?: readonly { payload?: unknown }[]; options: Option[] }) {
   if (!active || !payload?.length) return null;
   const point = payload[0]!.payload as { label: string; step: string } & Record<OptionId, number>;
   return (

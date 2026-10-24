@@ -17,7 +17,7 @@ import {
   type PurchasePlan,
   type Settings,
 } from '@paramin-karsiligi/shared';
-import type { ZodType } from 'zod';
+import type { output, ZodType } from 'zod';
 import { saveFile } from '../lib/download';
 import { readItem, writeItem } from '../lib/storage';
 import type { Api } from './http';
@@ -49,7 +49,7 @@ const persist = () => writeItem(STORE_KEY, store);
 const newId = () => store.nextId++;
 
 /** Sunucudaki doğrulamanın aynısı; hata mesajları da aynı biçimde */
-function parse<T>(schema: ZodType<T, any, any>, input: unknown): T {
+function parse<S extends ZodType>(schema: S, input: unknown): output<S> {
   const r = schema.safeParse(input);
   if (!r.success) throw new Error(r.error.issues.map((i) => i.message).join(', '));
   return r.data;

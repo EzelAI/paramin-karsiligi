@@ -1,0 +1,12 @@
+{
+  "name": "Paramın Karşılığı",
+  "short_name": "Paramın Karşılığı",
+  "description": "TL ödemelerinizin altın, döviz, faiz ve enflasyona göre bugünkü karşılığı; peşin mi taksit mi hesabı.",
+  "lang": "tr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#e9edf2",
+  "theme_color": "#1a2238",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

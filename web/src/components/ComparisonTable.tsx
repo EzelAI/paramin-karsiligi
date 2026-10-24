@@ -35,34 +35,53 @@ export function ComparisonTable({ analysis }: { analysis: InvestmentAnalysis }) 
     .sort((a, b) => (SORTS[sort].value(b) ?? -Infinity) - (SORTS[sort].value(a) ?? -Infinity));
   const maxValue = Math.max(...rows.map((r) => r.currentValue ?? 0), analysis.totalPaid);
 
-  const header = (key: SortKey, label: string) => (
-    <th className="num sortable" aria-sort={sort === key ? 'descending' : 'none'} onClick={() => setSort(key)}>
-      {label}
-      {sort === key ? ' ↓' : ''}
+  const header = (key: SortKey, label: string, className = '') => (
+    <th className={`num sortable ${className}`} aria-sort={sort === key ? 'descending' : 'none'}>
+      <button className="th-btn" onClick={() => setSort(key)}>
+        {label}
+        {sort === key ? ' ↓' : ''}
+      </button>
     </th>
   );
 
   return (
     <div>
-      <div className="chips">
-        {(['all', ...Object.keys(ASSET_GROUPS)] as Filter[]).map((g) => (
-          <button key={g} className={`chip${filter === g ? ' active' : ''}`} onClick={() => setFilter(g)}>
-            {g === 'all' ? 'Tümü' : ASSET_GROUPS[g]}
-          </button>
-        ))}
+      <div className="table-tools">
+        <div className="chips scroll-x" role="group" aria-label="Varlık grubu">
+          {(['all', ...Object.keys(ASSET_GROUPS)] as Filter[]).map((g) => (
+            <button
+              key={g}
+              className={`chip${filter === g ? ' active' : ''}`}
+              aria-pressed={filter === g}
+              onClick={() => setFilter(g)}
+            >
+              {g === 'all' ? 'Tümü' : ASSET_GROUPS[g]}
+            </button>
+          ))}
+        </div>
+        <label className="sort-select only-narrow">
+          Sırala
+          <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)}>
+            {(Object.keys(SORTS) as SortKey[]).map((k) => (
+              <option key={k} value={k}>
+                {SORTS[k].label}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
       <div className="table-wrap">
         <table className="ranking">
           <thead>
             <tr>
-              <th>#</th>
+              <th className="hide-narrow">#</th>
               <th>Varlık</th>
-              <th className="num">Biriken</th>
+              <th className="num hide-narrow">Biriken</th>
               {header('value', 'Bugünkü değer')}
-              {header('gainPct', 'Toplam')}
+              {header('gainPct', 'Toplam', 'hide-narrow')}
               {header('xirr', hasXirr ? 'Yıllık' : 'Yıllık*')}
-              {header('real', 'Reel')}
-              <th className="bar-col" />
+              {header('real', 'Reel', 'hide-narrow')}
+              <th className="bar-col hide-narrow" />
             </tr>
           </thead>
           <tbody>
@@ -75,11 +94,14 @@ export function ComparisonTable({ analysis }: { analysis: InvestmentAnalysis }) 
                   key={r.assetId}
                   className={[r.assetId === PRIMARY_ASSET && 'highlight', partial && 'partial'].filter(Boolean).join(' ')}
                 >
-                  <td className="muted">{i + 1}</td>
-                  <td title={def.note}>
+                  <td className="muted hide-narrow">{i + 1}</td>
+                  <td title={def.note} className="asset-cell">
                     <span className="dot" style={{ background: def.color }} />
                     {def.label}
                     <span className="group-tag">{ASSET_GROUPS[def.group]}</span>
+                    <span className="only-narrow sub">
+                      {def.kind === 'unit' ? `${formatUnits(r.assetId, r.totalUnits)}, ` : ''}toplam {formatPct(r.gainPct)}
+                    </span>
                     {def.note && <span className="info" aria-label={def.note}>ⓘ</span>}
                     {partial && (
                       <div className="warn-text small">
@@ -92,14 +114,14 @@ export function ComparisonTable({ analysis }: { analysis: InvestmentAnalysis }) 
                       </div>
                     ))}
                   </td>
-                  <td className="num">{def.kind === 'unit' ? formatUnits(r.assetId, r.totalUnits) : '—'}</td>
+                  <td className="num hide-narrow">{def.kind === 'unit' ? formatUnits(r.assetId, r.totalUnits) : '—'}</td>
                   <td className="num strong">{formatTL(r.currentValue)}</td>
-                  <td className={`num ${tone(r.gainPct)}`}>{formatPct(r.gainPct)}</td>
+                  <td className={`num hide-narrow ${tone(r.gainPct)}`}>{formatPct(r.gainPct)}</td>
                   <td className={`num ${tone(r.xirr)}`}>{formatRate(r.xirr)}</td>
-                  <td className={`num ${tone(r.real?.gain)}`}>
+                  <td className={`num hide-narrow ${tone(r.real?.gain)}`}>
                     {r.real ? (r.real.xirr !== null ? formatRate(r.real.xirr) : formatPct(r.real.gainPct)) : '—'}
                   </td>
-                  <td className="bar-col">
+                  <td className="bar-col hide-narrow">
                     <div className="bar">
                       <div
                         className="bar-value"
@@ -114,7 +136,7 @@ export function ComparisonTable({ analysis }: { analysis: InvestmentAnalysis }) 
           </tbody>
         </table>
       </div>
-      <ul className="muted small notes">
+      <ul className="notes">
         <li>
           <b>Yıllık</b>: para ağırlıklı yıllık getiri (XIRR); erken ödenen para daha uzun süre çalıştığı için daha ağır
           sayılır. {hasXirr ? '' : 'Yatırım 1 yıldan kısa olduğu için yıllık getiri gösterilmez; sıralama toplam getiriye göre. '}

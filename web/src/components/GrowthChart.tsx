@@ -51,8 +51,8 @@ export function GrowthChart({ timeline, partial }: { timeline: TimelinePoint[]; 
           {showAll ? 'Daha az' : 'Tüm hisseler…'}
         </button>
       </div>
-      <div className="chart">
-        <ResponsiveContainer width="100%" height={340}>
+      <div className="chart growth-chart">
+        <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 8, right: 16, bottom: 0, left: 8 }}>
             <CartesianGrid stroke="var(--grid)" vertical={false} />
             <XAxis dataKey="month" tickFormatter={formatMonth} tick={{ fill: 'var(--muted)', fontSize: 12 }} minTickGap={24} />

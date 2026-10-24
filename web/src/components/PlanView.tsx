@@ -8,7 +8,9 @@ import {
   type PurchasePlanInput,
 } from '@paramin-karsiligi/shared';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { AmountInput } from './AmountInput';
 import { HoldingComparison, type Market } from './HoldingComparison';
+import { PageHeader } from './PageHeader';
 import { useDeletePlan, useMonthlyPrices, usePlan, usePriceStatus, useSettings, useUpdatePlan } from '../api/hooks';
 import { formatMonth, formatMonthFromNow, formatNumber, formatPct, formatRate, formatTL, parseAmount } from '../lib/format';
 
@@ -90,7 +92,6 @@ export function PlanView({ planId }: { planId: number }) {
 function PlanEditor({ plan }: { plan: PurchasePlan }) {
   // Form yalnızca açılışta kayıttan doldurulur; sonra kullanıcı yazdıkça kaydedilir
   const [form, setForm] = useState<Form>(() => toForm(plan));
-  const [editingName, setEditingName] = useState(false);
   const update = useUpdatePlan(plan.id);
   const remove = useDeletePlan();
   const set = (patch: Partial<Form>) => setForm((f) => ({ ...f, ...patch }));
@@ -148,56 +149,44 @@ function PlanEditor({ plan }: { plan: PurchasePlan }) {
   const offer: InstallmentOffer = { cashPrice: cash, downPayment: down, count, installment, firstAfterMonths: Number(form.first) };
   const result = problem ? null : compareInstallment(offer, { annualReturnPct: returnPct!, annualInflationPct: inflationPct });
 
+  const rateSummary = [
+    returnPct != null && `getiri yıllık %${formatNumber(returnPct, 1)}`,
+    inflationPct != null && `enflasyon %${formatNumber(inflationPct, 1)}`,
+  ]
+    .filter(Boolean)
+    .join(', ');
+
   return (
-    <div className="inv-view installment">
-      <header className="inv-header">
-        <div>
-          <div className="eyebrow">Alacaklarım · peşin mi, taksit mi?</div>
-          {editingName ? (
-            <input
-              className="title-input"
-              autoFocus
-              value={form.name}
-              onChange={(e) => set({ name: e.target.value })}
-              onBlur={() => setEditingName(false)}
-              onKeyDown={(e) => (e.key === 'Enter' || e.key === 'Escape') && setEditingName(false)}
-            />
-          ) : (
-            <h1 onDoubleClick={() => setEditingName(true)} title="Yeniden adlandırmak için çift tıklayın">
-              {form.name.trim() || plan.name}
-            </h1>
-          )}
-        </div>
-        <div className="header-actions">
-          <button className="btn ghost" onClick={() => setEditingName(true)}>
-            Yeniden adlandır
-          </button>
-          <button className="btn danger-ghost" onClick={confirmDelete}>
-            Sil
-          </button>
-        </div>
-      </header>
+    <div className="page installment">
+      <PageHeader title={form.name.trim() || plan.name} onRename={(name) => set({ name })} onDelete={confirmDelete} />
       {update.error && <p className="error">Kaydedilemedi: {update.error.message}</p>}
       {remove.error && <p className="error">{remove.error.message}</p>}
-      <p className="muted intro">
+      <p className="lead">
         Almayı düşündüğünüz ürünün peşin ve taksitli fiyatını girin. Peşin parayı faizde tutup taksitleri oradan
         ödeseydiniz hangisinin daha ucuza geleceğini hesaplar. Girdikleriniz otomatik kaydedilir.
       </p>
 
-      <section className="card">
+      <section className="panel">
         <h2>Teklif</h2>
-        <div className="form-row">
+        <div className="form-grid">
           <label>
             Peşin fiyat (TL)
-            <input inputMode="decimal" placeholder="100.000" value={form.cash} onChange={(e) => set({ cash: e.target.value })} />
+            <AmountInput placeholder="100.000" value={form.cash} onChange={(v) => set({ cash: v })} />
           </label>
           <label>
             Peşinat (TL)
-            <input inputMode="decimal" placeholder="0" value={form.down} onChange={(e) => set({ down: e.target.value })} />
+            <AmountInput placeholder="0" value={form.down} onChange={(v) => set({ down: v })} />
           </label>
-          <label className="narrow">
+          <label>
             Taksit sayısı
-            <input type="number" min={1} max={360} value={form.count} onChange={(e) => set({ count: e.target.value })} />
+            <input
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={360}
+              value={form.count}
+              onChange={(e) => set({ count: e.target.value })}
+            />
           </label>
           <label>
             <select
@@ -209,11 +198,10 @@ function PlanEditor({ plan }: { plan: PurchasePlan }) {
               <option value="monthly">Aylık taksit (TL)</option>
               <option value="total">Taksitli toplam (TL)</option>
             </select>
-            <input
-              inputMode="decimal"
+            <AmountInput
               placeholder={form.amountMode === 'monthly' ? '9.500' : '114.000'}
               value={form.amount}
-              onChange={(e) => set({ amount: e.target.value })}
+              onChange={(v) => set({ amount: v })}
             />
           </label>
           <label>
@@ -225,15 +213,16 @@ function PlanEditor({ plan }: { plan: PurchasePlan }) {
           </label>
         </div>
         {form.amountMode === 'total' && installment > 0 && Number.isFinite(installment) && (
-          <p className="muted small hint">
-            Toplam peşinat dahildir: aylık taksit {formatTL(installment)}.
-          </p>
+          <p className="hint">Toplam peşinat dahildir: aylık taksit {formatTL(installment)}.</p>
         )}
       </section>
 
-      <section className="card">
-        <h2>Varsayımlar</h2>
-        <div className="form-row">
+      <details className="panel fold">
+        <summary>
+          <span className="fold-title">Varsayımlar</span>
+          {rateSummary && <span className="fold-meta">{rateSummary}</span>}
+        </summary>
+        <div className="form-grid">
           <RateField
             label="Paranın getirisi (yıllık net %)"
             value={form.returnPct}
@@ -247,16 +236,22 @@ function PlanEditor({ plan }: { plan: PurchasePlan }) {
             onChange={(v) => set({ inflationPct: v })}
           />
         </div>
-        <p className="muted small hint">
+        <p className="hint">
           Boş bırakırsanız güncel değerler kullanılır: getiri için TCMB politika faizinden ayarlardaki fark ve stopajla
           bulunan net mevduat faizi
           {current.policyPct != null && ` (politika faizi %${formatNumber(current.policyPct)})`}, enflasyon için son 12
           aylık TÜFE{current.cpiMonth && ` (${formatMonth(current.cpiMonth)})`}. Gelecekteki faiz ve enflasyon bilinemez;
           farklı oranlar deneyerek sonucun nasıl değiştiğine bakın.
         </p>
-      </section>
+      </details>
 
-      {problem ? <p className="muted">{problem}</p> : result && <Result result={result} offer={offer} returnPct={returnPct!} inflationPct={inflationPct} market={current.market} />}
+      {problem ? (
+        <p className="muted">{problem}</p>
+      ) : (
+        result && (
+          <Result result={result} offer={offer} returnPct={returnPct!} inflationPct={inflationPct} market={current.market} />
+        )
+      )}
     </div>
   );
 }
@@ -331,8 +326,7 @@ function Result(props: {
 
   return (
     <>
-      <section className={`card verdict ${same ? '' : installmentWins ? 'good' : 'bad'}`}>
-        <div className="label">Sonuç</div>
+      <section className={`panel verdict ${same ? '' : installmentWins ? 'good' : 'bad'}`}>
         <div className="hero-value">
           {same ? 'İkisi neredeyse aynı' : installmentWins ? 'Taksit daha avantajlı' : 'Peşin daha avantajlı'}
         </div>
@@ -355,7 +349,7 @@ function Result(props: {
         </p>
       </section>
 
-      <div className="compare-grid">
+      <div className="metrics">
         <Metric title="Taksitli toplam" value={formatTL(r.totalPrice)} color="var(--muted)">
           peşine göre {formatPct(r.markupPct * 100)} ({r.markup >= 0 ? '+' : ''}
           {formatTL(r.markup)})
@@ -385,8 +379,13 @@ function Result(props: {
 
       {props.market && <HoldingComparison offer={offer} result={r} market={props.market} />}
 
-      <section className="card">
-        <h2>Ödeme planı</h2>
+      <details className="panel fold">
+        <summary>
+          <span className="fold-title">Ödeme planı</span>
+          <span className="fold-meta">
+            {offer.count} taksit, ay ay bugünkü değeri ve mevduatta kalan
+          </span>
+        </summary>
         <div className="table-wrap">
           <table>
             <thead>
@@ -428,14 +427,14 @@ function Result(props: {
             </tbody>
           </table>
         </div>
-      </section>
+      </details>
     </>
   );
 }
 
 function Metric(props: { title: string; value: string; color: string; children: ReactNode }) {
   return (
-    <div className="card compare-card" style={{ borderTopColor: props.color }}>
+    <div className="metric" style={{ borderTopColor: props.color }}>
       <div className="label">{props.title}</div>
       <div className="compare-value">{props.value}</div>
       <div className="muted small">{props.children}</div>

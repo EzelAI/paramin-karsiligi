@@ -31,10 +31,10 @@ export function SettingsView({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <form className="inv-view settings" onSubmit={submit}>
-      <header className="inv-header">
-        <h1>Hesaplama varsayımları</h1>
-        <div className="header-actions">
+    <form className="page settings" onSubmit={submit}>
+      <header className="page-head">
+        <h1 className="page-title">Hesaplama varsayımları</h1>
+        <div className="page-actions always">
           <button type="button" className="btn ghost" onClick={() => setDraft(DEFAULT_SETTINGS)}>
             Varsayılanlara dön
           </button>
@@ -48,14 +48,14 @@ export function SettingsView({ onClose }: { onClose: () => void }) {
       </header>
       {save.error && <p className="error">{save.error.message}</p>}
 
-      <section className="card">
+      <section className="panel">
         <h2>Alım-satım maliyeti (gidiş-dönüş, %)</h2>
         <p className="muted small">
           Makas ve komisyon toplamı. Her alımda tutarın bu kadarı kesilmiş sayılır; örneğin %1 ile 100.000 TL'lik ödeme
           99.000 TL'lik varlık alır. Yaklaşık değerler: kuyum/banka altını %1–3, döviz %0,5–2, ABD hissesi (kur çevrimi
           dahil) %0,5–1,5, BIST %0,1–0,4.
         </p>
-        <div className="form-row">
+        <div className="form-grid">
           {(Object.keys(ASSET_GROUPS) as AssetGroup[])
             .filter((g) => g !== 'inflation')
             .map((g) => (
@@ -69,25 +69,25 @@ export function SettingsView({ onClose }: { onClose: () => void }) {
         </div>
       </section>
 
-      <section className="card">
+      <section className="panel">
         <h2>Altın</h2>
         <p className="muted small">
           Gram fiyatı uluslararası spot ons fiyatından (parite) hesaplanır. Kapalıçarşı/banka fiyatı genelde bundan
           biraz yüksektir; aradaki farkı prim olarak girerseniz "kaç gram" hesabı yerel fiyata göre yapılır.
         </p>
-        <div className="form-row">
+        <div className="form-grid">
           <NumberField label="Yerel prim (%)" value={draft.goldPremiumPct} min={-50} onChange={(v) => set({ goldPremiumPct: v })} />
         </div>
       </section>
 
-      <section className="card">
+      <section className="panel">
         <h2>Mevduat faizi</h2>
         <p className="muted small">
           Faiz, TCMB politika faizinden hesaplanır. Bankaların mevduat faizi bundan farklı olabilir (ör. 2011–2018 arası
           daha yüksek, 2023 sonrası çoğu zaman daha düşük): farkı puan olarak girebilirsiniz. Stopaj oranı dönemlere göre
           değişmiştir; burada tek oran uygulanır.
         </p>
-        <div className="form-row">
+        <div className="form-grid">
           <NumberField
             label="Stopaj (%)"
             value={draft.depositWithholdingPct}
@@ -102,12 +102,12 @@ export function SettingsView({ onClose }: { onClose: () => void }) {
         </div>
       </section>
 
-      <section className="card">
+      <section className="panel">
         <h2>Temettü stopajı (%)</h2>
         <p className="muted small">
           Hisse getirilerinde temettüler bu oran düşüldükten sonra yeniden yatırılmış sayılır.
         </p>
-        <div className="form-row">
+        <div className="form-grid">
           <NumberField
             label="ABD"
             value={draft.dividendWithholdingPct.us}
@@ -121,14 +121,14 @@ export function SettingsView({ onClose }: { onClose: () => void }) {
         </div>
       </section>
 
-      <section className="card">
+      <section className="panel">
         <h2>Gelecek tahminleri (Alacaklarım)</h2>
         <p className="muted small">
           Alacaklarım ekranında peşin parayı altında ya da dolarda tutma hesabı için 12 ay sonrası tahminleri. Boş
           bırakırsanız yayımlanmış tahminlerin ortalaması kullanılır ({formatDate(FORECASTS_COMPILED_AT)} itibarıyla: ons
           ${formatNumber(GOLD_FORECAST_AVERAGE, 0)}, dolar/TL {formatNumber(USDTRY_FORECAST.value)}).
         </p>
-        <div className="form-row">
+        <div className="form-grid">
           <OptionalNumberField
             label="Ons altın, 12 ay sonra ($)"
             value={draft.forecast.goldUsdOz}

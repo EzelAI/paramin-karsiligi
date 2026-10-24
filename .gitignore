@@ -3,3 +3,5 @@ dist
 server/data/*.db
 server/data/*.db-*
 *.log
+.agents/
+skills-lock.json

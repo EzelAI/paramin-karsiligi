@@ -12,6 +12,16 @@ Uygulama iki bölümden oluşur:
 - **Aldıklarım**: yapılmış ödemelerin altın, döviz, faiz, enflasyon ve hisselere göre bugünkü karşılığı (yukarıdaki sorular).
 - **Alacaklarım**: almayı düşündüğünüz ürünler için peşin fiyat ile taksitli teklifin karşılaştırması (bkz. aşağıda).
 
+## Arayüz
+
+- **Geniş ekran:** solda bölüm seçimi (Aldıklarım / Alacaklarım), kayıt listesi ve güncel fiyatlar.
+- **Telefon:** üstte kayıtlar arasında yatay geçiş, altta sabit menü (Aldıklarım, Alacaklarım, Fiyatlar, Varsayımlar).
+  Tablolarda yalnızca gerekli sütunlar gösterilir; tutar alanları sayı klavyesi açar ve binlik ayırıcıyı kendisi koyar.
+- Yatırım sayfası üç sekmeden oluşur: **Özet** (altın karşılığı cümlesi, öne çıkan karşılaştırmalar, grafik),
+  **Karşılaştırma** (tüm varlıklar) ve **Ödemeler** (ekleme, düzenleme, silme).
+- Açık ve koyu tema, klavye ile kullanım ve hareket azaltma tercihi desteklenir. Telefonda "Ana ekrana ekle" ile uygulama
+  gibi açılır. Yazı tipleri (Bricolage Grotesque, IBM Plex Sans) sitenin içinden yüklenir; dışarıya istek yapılmaz.
+
 ## Çalıştırma
 
 Gereksinim: **Node.js 22.13+** (yerleşik `node:sqlite` kullanılır).

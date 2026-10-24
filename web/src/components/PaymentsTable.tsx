@@ -29,18 +29,20 @@ export function PaymentsTable({ payments, analysis }: Props) {
 
   return (
     <div className="table-wrap">
-      <table>
+      <table className="payments-table">
         <thead>
           <tr>
             <th>Tarih</th>
             <th className="num">Tutar</th>
-            <th className="num">Gram fiyatı</th>
+            <th className="num hide-narrow">Gram fiyatı</th>
             <th className="num">Altın</th>
-            <th className="num">Toplam altın</th>
-            <th className="num">USD</th>
-            <th className="num">EUR</th>
-            <th>Not</th>
-            <th />
+            <th className="num hide-narrow">Toplam altın</th>
+            <th className="num hide-narrow">USD</th>
+            <th className="num hide-narrow">EUR</th>
+            <th className="hide-narrow">Not</th>
+            <th>
+              <span className="sr-only">İşlemler</span>
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -52,21 +54,23 @@ export function PaymentsTable({ payments, analysis }: Props) {
                 <td>
                   {formatDate(p.date)}
                   {plannedIds.has(p.id) && <span className="group-tag">Planlanan</span>}
+                  {p.note && <span className="only-narrow sub">{p.note}</span>}
                 </td>
                 <td className="num">{formatTL(p.amount)}</td>
-                <td className="num">{formatTL(conv?.GRAM_GOLD?.price)}</td>
+                <td className="num hide-narrow">{formatTL(conv?.GRAM_GOLD?.price)}</td>
                 <td className="num gold">{formatUnits('GRAM_GOLD', conv?.GRAM_GOLD?.units)}</td>
-                <td className="num">{formatNumber(cumGold)} gr</td>
-                <td className="num">{formatUnits('USD', conv?.USD?.units)}</td>
-                <td className="num">{formatUnits('EUR', conv?.EUR?.units)}</td>
-                <td className="note">{p.note}</td>
+                <td className="num hide-narrow">{formatNumber(cumGold)} gr</td>
+                <td className="num hide-narrow">{formatUnits('USD', conv?.USD?.units)}</td>
+                <td className="num hide-narrow">{formatUnits('EUR', conv?.EUR?.units)}</td>
+                <td className="note hide-narrow">{p.note}</td>
                 <td className="actions">
-                  <button className="icon-btn" title="Düzenle" onClick={() => setEditingId(p.id)}>
+                  <button className="icon-btn" title="Düzenle" aria-label="Düzenle" onClick={() => setEditingId(p.id)}>
                     ✎
                   </button>
                   <button
                     className="icon-btn"
                     title="Sil"
+                    aria-label="Sil"
                     disabled={remove.isPending}
                     onClick={() => confirm(`${formatDate(p.date)} tarihli ödeme silinsin mi?`) && remove.mutate(p.id)}
                   >

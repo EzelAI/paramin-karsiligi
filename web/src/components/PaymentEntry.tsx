@@ -2,6 +2,7 @@ import { monthRange, toIsoDate } from '@paramin-karsiligi/shared';
 import { useState, type FormEvent } from 'react';
 import { useAddBulkPayments, useAddPayment } from '../api/hooks';
 import { formatTL, parseAmount } from '../lib/format';
+import { AmountInput } from './AmountInput';
 
 type Mode = 'monthly' | 'single';
 
@@ -37,14 +38,14 @@ function SingleForm({ investmentId }: { investmentId: number }) {
   };
 
   return (
-    <form className="form-row" onSubmit={submit}>
+    <form className="form-grid entry" onSubmit={submit}>
       <label>
         Tarih
         <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
       </label>
       <label>
         Tutar (TL)
-        <input inputMode="decimal" placeholder="2.000.000" value={amount} onChange={(e) => setAmount(e.target.value)} required />
+        <AmountInput placeholder="2.000.000" value={amount} onChange={setAmount} required />
       </label>
       <label className="grow">
         Not
@@ -82,7 +83,7 @@ function MonthlyForm({ investmentId }: { investmentId: number }) {
   };
 
   return (
-    <form className="form-row" onSubmit={submit}>
+    <form className="form-grid entry" onSubmit={submit}>
       <label>
         İlk ay
         <input type="month" value={startMonth} onChange={(e) => setStartMonth(e.target.value)} required />
@@ -93,11 +94,11 @@ function MonthlyForm({ investmentId }: { investmentId: number }) {
       </label>
       <label className="narrow">
         Ayın günü
-        <input type="number" min={1} max={31} value={day} onChange={(e) => setDay(e.target.value)} required />
+        <input type="number" inputMode="numeric" min={1} max={31} value={day} onChange={(e) => setDay(e.target.value)} required />
       </label>
       <label>
         Aylık tutar (TL)
-        <input inputMode="decimal" placeholder="50.000" value={amount} onChange={(e) => setAmount(e.target.value)} required />
+        <AmountInput placeholder="50.000" value={amount} onChange={setAmount} required />
       </label>
       <label className="grow">
         Not

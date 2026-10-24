@@ -122,7 +122,7 @@ export function HoldingComparison({ offer, result, market }: { offer: Installmen
   const best = options.reduce((a, b) => (end(b.id) > end(a.id) ? b : a)).id;
 
   return (
-    <section className="card">
+    <section className="panel">
       <h2>Peşin parayı nerede tutsaydınız?</h2>
       <p className="muted small hint-top">
         Taksitli alıp peşin parayı bekletirseniz son taksitten sonra elinizde kalan (alım-satım maliyeti düşülmüş).
@@ -160,7 +160,7 @@ export function HoldingComparison({ offer, result, market }: { offer: Installmen
       <p className="muted small hint-top">{VIEWS[view].hint}</p>
 
       <div className="chart holding-chart">
-        <ResponsiveContainer width="100%" height={300}>
+        <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 8, right: 16, bottom: 0, left: 8 }}>
             <CartesianGrid stroke="var(--grid)" vertical={false} />
             <XAxis dataKey="label" tick={{ fill: 'var(--muted)', fontSize: 12 }} minTickGap={16} />

@@ -449,6 +449,9 @@ label {
   color: var(--ink-2);
   margin: 8px 0;
 }
+.prices-meta.warn {
+  color: var(--warn);
+}
 .prices:not(.compact) {
   background: var(--surface);
   border: 1px solid var(--line);
@@ -1084,6 +1087,157 @@ tr.editing input {
   gap: 4px;
 }
 
+/* Ödeme seçenekleri */
+.option-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.chip:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.option-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+}
+.option-head {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.option-name {
+  flex: 1;
+  min-width: 200px;
+  max-width: 360px;
+}
+.pay-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pay-head,
+.pay-row {
+  display: grid;
+  grid-template-columns: 90px 150px 210px 36px;
+  justify-content: start;
+  align-items: center;
+  gap: 8px;
+}
+.pay-head {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+.pay-head span:first-child {
+  grid-column: 1 / span 2;
+}
+.pay-unit {
+  color: var(--ink-2);
+  font-size: 13.5px;
+  white-space: nowrap;
+}
+/* Tutar alanı: sağında "TL" eki, para girilir */
+.money {
+  position: relative;
+  display: block;
+}
+.money input {
+  padding-right: 40px;
+  text-align: right;
+}
+.money-unit {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ink-2);
+  font-size: 13px;
+  pointer-events: none;
+}
+.presets {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+/* Girilen ödemeler toplam fiyatla tutuyor mu */
+.pay-balance {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  padding: 10px 12px;
+  border-radius: var(--r-s);
+  background: var(--warn-bg);
+  font-size: 14px;
+}
+.pay-balance.ok {
+  background: color-mix(in srgb, var(--up) 12%, var(--surface));
+}
+.plan-summary {
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-s);
+}
+.plan-summary h3 {
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0;
+  margin-bottom: 8px;
+}
+.plan-summary ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.plan-summary li,
+.plan-summary-total {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--grid);
+  font-size: 14px;
+}
+.plan-summary-total {
+  border-bottom: 0;
+  padding-bottom: 0;
+  font-weight: 600;
+}
+.option-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.link-cell {
+  all: unset;
+  cursor: pointer;
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-color: var(--line);
+  text-underline-offset: 4px;
+}
+.link-cell:hover {
+  text-decoration-color: var(--gold-fill);
+}
+.link-cell:focus-visible {
+  outline: 2px solid var(--gold-fill);
+}
+td .badge {
+  margin-left: 8px;
+}
+
 /* Boş durum */
 .empty {
   max-width: 560px;
@@ -1499,6 +1653,37 @@ tr.editing input {
     padding-right: 0;
   }
 
+  .option-editor {
+    padding: 12px;
+  }
+  .option-name {
+    max-width: none;
+  }
+  .pay-head {
+    display: none;
+  }
+  .pay-row {
+    grid-template-columns: 72px 1fr 36px;
+    grid-template-areas:
+      'after unit del'
+      'value value value';
+    justify-content: stretch;
+    row-gap: 6px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+  }
+  .pay-row > .pay-when {
+    grid-area: after;
+  }
+  .pay-row > .pay-unit {
+    grid-area: unit;
+  }
+  .pay-row > .money {
+    grid-area: value;
+  }
+  .pay-row > .icon-btn {
+    grid-area: del;
+  }
   .holding-cards {
     grid-template-columns: 1fr;
   }

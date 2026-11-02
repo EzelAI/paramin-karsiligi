@@ -29,6 +29,14 @@ export interface PriceSnapshot {
   series: Record<string, Series & { fetchedAt: string | null }>;
 }
 
+/** TCMB Piyasa Katılımcıları Anketi'nin son 12 ay sonrası beklentileri (EVDS anahtarı yoksa null) */
+export interface Expectations {
+  /** 12 ay sonrası dolar/TL; month anketin ayı (YYYY-AA) */
+  usdTry12m: { value: number; month: string } | null;
+  /** 12 ay sonrası yıllık TÜFE (%) */
+  cpi12m: { value: number; month: string } | null;
+}
+
 /** Ham seriler (veritabanı ya da anlık görüntü) */
 export interface RawPriceSource {
   series(key: string): Series;
@@ -69,6 +77,17 @@ export class PriceCalculator {
     return this.source.series(key);
   }
 
+  /**
+   * Faiz ve TÜFE için kullanılacak ham seri: EVDS'den gelen market serisi varsa o (bankaların gerçek mevduat faizi,
+   * endeksten hesaplanan TÜFE), yoksa web sayfasından okunan source.
+   */
+  private rateSource(recipe: { source: string; market?: string }): { series: Series; fromMarket: boolean } {
+    const market = recipe.market ? this.raw(recipe.market) : null;
+    return market && market.dates.length > 0
+      ? { series: market, fromMarket: true }
+      : { series: this.raw(recipe.source), fromMarket: false };
+  }
+
   private build(recipe: AssetRecipe, today: IsoDate): Series {
     const settings = this.getSettings();
     switch (recipe.type) {
@@ -81,11 +100,11 @@ export class PriceCalculator {
         );
       }
       case 'deposit':
-        return compoundIndex(this.raw(recipe.source), PRICE_HISTORY_START, today, (policy) =>
-          Math.max(0, policy + settings.depositSpreadPts) * (1 - settings.depositWithholdingPct / 100),
+        return compoundIndex(this.rateSource(recipe).series, PRICE_HISTORY_START, today, (rate) =>
+          Math.max(0, rate + settings.depositSpreadPts) * (1 - settings.depositWithholdingPct / 100),
         );
       case 'cpi':
-        return cpiIndex(this.raw(recipe.source), today);
+        return cpiIndex(this.rateSource(recipe).series, today);
       case 'stock': {
         const tr = totalReturnSeries(
           this.raw(recipe.source),
@@ -134,7 +153,8 @@ export class PriceCalculator {
       const fetched = sourcesOf(recipe)
         .map((s) => this.source.lastFetchedAt(s))
         .filter((v): v is string => v !== null);
-      const sourceSeries = recipe.type === 'deposit' || recipe.type === 'cpi' ? this.raw(recipe.source) : null;
+      const rate = recipe.type === 'deposit' || recipe.type === 'cpi' ? this.rateSource(recipe) : null;
+      const sourceSeries = rate?.series ?? null;
       return {
         assetId,
         firstDate: dates[0] ?? null,
@@ -142,10 +162,35 @@ export class PriceCalculator {
         lastPrice: values.at(-1) ?? null,
         lastFetchedAt: fetched.sort()[0] ?? null,
         ratePct: recipe.type === 'deposit' ? (sourceSeries!.values.at(-1) ?? null) : null,
+        rateKind: recipe.type === 'deposit' ? (rate!.fromMarket ? 'deposit' : 'policy') : null,
+        official: this.officialRate(assetId),
         // Faizde son karar tarihi, TÜFE'de son açıklanan ay
         sourceLastDate: sourceSeries?.dates.at(-1) ?? null,
       };
     });
+  }
+
+  /** TCMB resmî kuru ve varlığın fiyatıyla farkı (yalnızca USD ve EUR; veri yoksa null) */
+  private officialRate(assetId: AssetId): PriceStatus['official'] {
+    const key = assetId === 'USD' ? 'EVDS_USD' : assetId === 'EUR' ? 'EVDS_EUR' : null;
+    if (!key) return null;
+    const official = this.raw(key);
+    const date = official.dates.at(-1);
+    const price = official.values.at(-1);
+    const ours = date ? this.lookup(assetId, date) : undefined;
+    if (date === undefined || price === undefined || ours === undefined || !(price > 0)) return null;
+    return { price, date, deviationPct: (ours / price - 1) * 100 };
+  }
+
+  /** Piyasa Katılımcıları Anketi'nin en son beklentileri */
+  expectations(): Expectations {
+    const last = (key: string) => {
+      const s = this.raw(key);
+      const date = s.dates.at(-1);
+      const value = s.values.at(-1);
+      return date !== undefined && value !== undefined ? { value, month: date.slice(0, 7) } : null;
+    };
+    return { usdTry12m: last('EVDS_PKA_USD12'), cpi12m: last('EVDS_PKA_CPI12') };
   }
 
   /** Bir yatırımın ödemelerini tüm varlıklarla karşılaştırır */

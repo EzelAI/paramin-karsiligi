@@ -72,10 +72,32 @@ güncellenebilir.
 | ------------- | -------------- |
 | Gram altın    | Spot ons ≈ GLD fiyatı ÷ pay başına ons (0,1 × 0,996^yıl); × USD/TRY ÷ 31,1035 × (1 + yerel prim) |
 | USD, EUR      | Yahoo: USDTRY=X, EURTRY=X |
-| Mevduat faizi | TCMB politika faizi (20.05.2010 öncesi gecelik borç alma, sonrası 1 hafta repo) + fark; stopaj sonrası, günlük bileşik |
-| Enflasyon     | TCMB TÜFE aylık % değişimleri; ay içinde geometrik ara değer, son açıklanan aydan sonra sabit |
+| Mevduat faizi | **EVDS** (anahtar varsa): bankaların yeni açılan TL mevduata verdiği faiz, haftalık (bireysel mevduat, 3 aya kadar vade; 2012 öncesi tüm mevduat) + fark; stopaj sonrası, günlük bileşik. Anahtar yoksa TCMB politika faizi (20.05.2010 öncesi gecelik borç alma, sonrası 1 hafta repo) |
+| Enflasyon     | TCMB TÜFE aylık % değişimleri (EVDS endeksinden; anahtar yoksa TCMB web sayfasından); ay içinde geometrik ara değer, son açıklanan aydan sonra sabit |
 | ABD hisseleri | Yahoo kapanış + temettüler (stopaj sonrası yeniden yatırılır) × USD/TRY: SPY, QQQ, AAPL, MSFT, NVDA, AMZN, GOOGL, META, TSLA |
 | BIST          | Yahoo kapanış + temettüler (stopaj sonrası): THYAO, ASELS, BIMAS, KCHOL, TUPRS, GARAN, AKBNK, EREGL, SISE, FROTO; XU100 fiyat endeksi |
+
+### TCMB EVDS (isteğe bağlı, önerilir)
+
+[EVDS](https://evds3.tcmb.gov.tr) TCMB'nin veri dağıtım sistemidir; üyelik ve anahtar ücretsizdir. Anahtar varsa uygulama:
+
+- faiz karşılaştırmasında politika faizi yerine **bankaların gerçek mevduat faizini** kullanır (politika faizi bunun
+  yaklaşık 7 puan altında kalabiliyor),
+- TÜFE'yi EVDS endeksinden hesaplar (web sayfası tablosuna bağımlılığı kaldırır),
+- **Piyasa Katılımcıları Anketi**'nin 12 ay sonrası dolar/TL ve TÜFE beklentilerini otomatik alır (Alacaklarım'da
+  beklenen enflasyon ve dolar tahmini olarak kullanılır; elle girdiğiniz değer önceliklidir),
+- Yahoo kurunu TCMB resmî kuruyla karşılaştırır; fark %1,5'i aşarsa kenar çubuğunda uyarır.
+
+Kurulum: EVDS'ye üye olup profil sayfasındaki "API anahtarı" bölümünden anahtarı alın ve `server/.env` dosyasına
+`EVDS_API_KEY=anahtarınız` yazın (dosya git'e girmez). GitHub sitesinin her gün güncellenmesi için aynı anahtarı depoda
+**Settings → Secrets and variables → Actions** altında `EVDS_API_KEY` adıyla ekleyin. Anahtar yoksa ya da EVDS yanıt
+vermezse uygulama eski kaynaklarla (politika faizi, TCMB web sayfası) çalışmaya devam eder.
+
+Teknik notlar: EVDS 3'te anahtar adreste değil `key` HTTP başlığında gönderilir; tek istekte en fazla 1000 satır döner ve
+fazlasını sessizce keser, bu yüzden istemci uzun aralıkları otomatik bölerek ister (`server/src/providers/evds.ts`). Yeni
+bir EVDS serisi eklemek için `npm run evds -w server -- categories | datagroups <no> | series <grup> | fetch <kod> <tarih>`
+komutlarıyla kod bulunup doğrulanır, sonra `shared/src/assetPricing.ts` içindeki `SOURCES` ve `evds.ts` içindeki
+sembol tablosuna eklenir.
 
 Bir ödemenin fiyatı, ödeme tarihindeki ya da öncesindeki en yakın işlem gününün değeridir. Veriler 2005'ten itibaren
 mevcuttur. Bazı hisselerde daha geç başlar (Tesla 2010, Meta 2012); öncesindeki ödemeler o varlık için "hariç" sayılır
@@ -94,15 +116,31 @@ diğer varlıklarla aynı şekilde işler.
 
 ### Alacaklarım: peşin mi, taksit mi?
 
-Peşin fiyat, peşinat, taksit sayısı ve aylık taksit (ya da taksitli toplam) girilir. Model: peşin fiyat kadar paranız var;
-taksitli alırsanız kalanını mevduatta tutup taksitleri oradan ödersiniz (`shared/src/installment.ts`).
+Bir ürünün peşin fiyatı girilir, sonra satıcının sunduğu **ödeme seçenekleri** eklenir (bir üründe en fazla 8):
 
-- **Taksitlerin bugünkü değeri**: her taksit, paranın getirisiyle (yıllık net faiz, günlük bileşik) bugüne indirgenir.
-  Peşin fiyattan düşükse taksit avantajlıdır; fark ve son taksitten sonra mevduatta kalan tutar gösterilir.
-- **Teklifin faizi**: taksitlerin bugünkü değerini peşin fiyata eşitleyen aylık oran (yıllık bileşik olarak da).
-- **Bugünün parasıyla**: taksitler beklenen enflasyonla bugünün parasına çevrilir.
+- **Eşit taksit**: peşinat, taksit sayısı, aylık taksit (ya da peşinat dahil taksitli toplam) ve ilk taksitin kaç ay sonra
+  başlayacağı.
+- **Özel plan**: "6 ay sonra yarısı, 12 ay sonra yarısı" gibi serbest ödeme satırları. Her satır "kaç ay sonra" (0 = bugün)
+  ve ödenecek **TL tutarıdır**; yüzde girilmez. Girilen ödemeler toplam fiyatla (boşsa peşin fiyatla) karşılaştırılır,
+  fark canlı gösterilir ve tek tıkla son satıra eklenir ya da düşülür. Hazır şablonlar ("yarısı bugün, yarısı 6 ay sonra",
+  "yarısı 6 ay, yarısı 12 ay sonra", "üç eşit parça") toplam fiyatı bölüp tutarları kendisi yazar. Her seçeneğin altında
+  "ne zaman ne kadar ödeyeceksiniz" özeti görünür. Satıcı bu plan için peşin fiyattan farklı bir toplam istiyorsa
+  "bu plandaki toplam fiyat" alanına yazılır.
+
+İkisi de aynı **ödeme takvimine** (bugün ödenen + sonraki aylardaki ödemeler, `shared/src/paymentOptions.ts`) çevrilir ve
+hesap yalnızca takvim üzerinden yapılır (`shared/src/installment.ts`). Birden fazla seçenek hesaplanabiliyorsa
+"Seçenekleri karşılaştır" tablosu bugünün parasıyla en ucuza geleni gösterir.
+
+Model: peşin fiyat kadar paranız var; plana göre alırsanız bugün ödenecek kısmı hemen ödeyip kalanını mevduatta tutar,
+sonraki ödemeleri oradan yaparsınız.
+
+- **Ödemelerin bugünkü değeri**: her ödeme, paranın getirisiyle (yıllık net faiz, günlük bileşik) bugüne indirgenir.
+  Peşin fiyattan düşükse plan avantajlıdır; fark ve son ödemeden sonra mevduatta kalan tutar gösterilir.
+- **Planın faizi**: ödemelerin bugünkü değerini peşin fiyata eşitleyen aylık oran (yıllık bileşik olarak da).
+- **Bugünün parasıyla**: ödemeler beklenen enflasyonla bugünün parasına çevrilir.
 - Getiri ve enflasyon boş bırakılırsa güncel net mevduat faizi (politika faizi + fark, stopaj sonrası) ve son 12 aylık
-  TÜFE kullanılır. Her ürün veritabanında saklanır (`purchase_plans`), form değiştikçe otomatik kaydedilir.
+  TÜFE kullanılır. Her ürün veritabanında saklanır (`purchase_plans`; seçenekler `options_json` sütununda), form
+  değiştikçe otomatik kaydedilir. Seçenek özelliğinden önce kaydedilmiş ürünler tek bir eşit taksit seçeneği olarak açılır; yüzde olarak kaydedilmiş satırlar tutara çevrilir.
 
 #### Peşin parayı nerede tutsaydınız? (tahmine dayalı)
 
@@ -125,14 +163,17 @@ değiştirmek yeterlidir. Kullanıcı Hesaplama varsayımları ekranından kendi
 | Alım-satım maliyeti (gidiş-dönüş, her alımda kesilir) | altın %1, döviz %1, ABD hisse %1, BIST %0,2, faiz %0 |
 | Altın yerel piyasa primi (parite üzerine) | %0 |
 | Mevduat stopajı | %15 |
-| Mevduat faizi − politika faizi | 0 puan |
+| Mevduat faizine fark (EVDS yoksa politika faizine fark) | 0 puan |
 | Temettü stopajı | ABD %20, BIST %15 |
 | Ons altın ve dolar/TL, 12 ay sonra (Alacaklarım) | Boş: yayımlanmış tahminlerin ortalaması |
 
 > Bilinen sınırlar: Stopaj oranları dönemlere göre değişmiştir, uygulama tek oran kullanır. Politika faizi, fiili fonlama
 > faizinden ayrıştığı dönemlerde (ör. 2011–2013 faiz koridoru) mevduat getirisini tam yansıtmayabilir. ABD hisseleri aynı
 > günün USD/TRY kapanışıyla çevrilir; saat farkı küçük günlük sapmalara yol açar. BIST serilerinde tek günde %25'ten büyük
-> değişimler "düzeltilmemiş bölünme olabilir" uyarısıyla gösterilir, otomatik düzeltilmez.
+> değişimler "düzeltilmemiş bölünme olabilir" uyarısıyla gösterilir, otomatik düzeltilmez. EVDS'den gelen mevduat faizi
+> bankaların ortalamasıdır; getiri her gün o haftanın güncel faiziyle yeniden yatırılmış gibi hesaplanır, oysa gerçekte
+> mevduat vade sonunda yenilenir ve oranı o gün belirlenir. Bu, getiriyi biraz iyimser gösterebilir; kendi bankanızın
+> faizi farklıysa ayarlardan "mevduat faizine fark" girin.
 
 ## Yasal uyarı
 

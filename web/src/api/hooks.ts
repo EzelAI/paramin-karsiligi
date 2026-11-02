@@ -1,6 +1,7 @@
 import type {
   AssetId,
   BulkPaymentInput,
+  Investment,
   InvestmentInput,
   PaymentInput,
   PurchasePlan,
@@ -15,6 +16,7 @@ export const keys = {
   investment: (id: number) => ['investments', id] as const,
   analysis: (id: number) => ['investments', id, 'analysis'] as const,
   priceStatus: ['prices', 'status'] as const,
+  expectations: ['prices', 'expectations'] as const,
   monthly: (assetId: AssetId, from?: string) => ['prices', 'monthly', assetId, from ?? ''] as const,
   settings: ['settings'] as const,
   plans: ['plans'] as const,
@@ -30,6 +32,9 @@ export const useAnalysis = (id: number | null) =>
   useQuery({ queryKey: keys.analysis(id ?? 0), queryFn: () => api.getAnalysis(id!), enabled: id !== null });
 
 export const usePriceStatus = () => useQuery({ queryKey: keys.priceStatus, queryFn: api.priceStatus });
+
+/** TCMB Piyasa Katılımcıları Anketi beklentileri (EVDS anahtarı yoksa alanlar null) */
+export const useExpectations = () => useQuery({ queryKey: keys.expectations, queryFn: api.expectations });
 
 export const useMonthlyPrices = (assetId: AssetId, from?: string) =>
   useQuery({ queryKey: keys.monthly(assetId, from), queryFn: () => api.monthlyPrices(assetId, from) });
@@ -51,8 +56,16 @@ export function useUpdateInvestment(id: number) {
 }
 
 export function useDeleteInvestment() {
-  const invalidate = useInvalidateInvestments();
-  return useMutation({ mutationFn: (id: number) => api.deleteInvestment(id), onSuccess: invalidate });
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => api.deleteInvestment(id),
+    onSuccess: (_: void, id: number) => {
+      // Listeden hemen çıkar; silinen yatırımın kendisi ve analizi yeniden istenmesin (404)
+      qc.setQueryData<Investment[]>(keys.investments, (list) => list?.filter((i) => i.id !== id));
+      qc.removeQueries({ queryKey: keys.investment(id) });
+      qc.invalidateQueries({ queryKey: keys.investments, exact: true });
+    },
+  });
 }
 
 export function useAddPayment(investmentId: number) {
@@ -87,6 +100,7 @@ export function useRefreshPrices() {
     mutationFn: api.refreshPrices,
     onSuccess: (status) => {
       qc.setQueryData(keys.priceStatus, status);
+      qc.invalidateQueries({ queryKey: keys.expectations });
       qc.invalidateQueries({ queryKey: ['prices', 'monthly'] });
       qc.invalidateQueries({ queryKey: keys.investments });
     },

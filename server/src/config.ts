@@ -12,6 +12,8 @@ export const config = {
   webDist: path.resolve(root, '..', 'web', 'dist'),
   /** Fiyat önbelleği bu süreden eskiyse yeniden çekilir */
   priceRefreshMs: 6 * 60 * 60 * 1000,
+  /** TCMB EVDS anahtarı (server/.env); yoksa TCMB verileri web sayfalarından okunur */
+  evdsKey: process.env.EVDS_API_KEY?.trim() || null,
   /** Fiyat geçmişinin başlangıcı */
   priceHistoryStart: PRICE_HISTORY_START,
 };

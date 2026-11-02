@@ -31,7 +31,11 @@ jobs:
       - run: npm test
       - run: npm run build:static
       # Fiyatlar çekilemezse iş durur ve önceki yayın olduğu gibi kalır
+      # EVDS_API_KEY (Settings > Secrets > Actions) varsa gerçek mevduat faizi, TÜFE ve beklentiler TCMB EVDS'den alınır;
+      # yoksa ya da EVDS yanıt vermezse web sayfası verisiyle devam edilir
       - run: npm run snapshot -- ../web/dist/data/prices.json
+        env:
+          EVDS_API_KEY: ${{ secrets.EVDS_API_KEY }}
       - uses: actions/upload-pages-artifact@v5
         with:
           path: web/dist

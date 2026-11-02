@@ -7,8 +7,11 @@ import {
   GOLD_FORECASTS,
   goldBreakEvenOz,
   monthlyGrowth,
+  monthName,
+  USDTRY_FORECAST,
+  usdTryReference,
 } from './forecasts';
-import { monthlyFromDailyCompounded, simulateHolding } from './installment';
+import { monthlyFromDailyCompounded, scheduleFromInstallments, simulateHolding } from './installment';
 
 describe('tahmin varsayımları', () => {
   it('ortalama, listedeki tahminlerden hesaplanır', () => {
@@ -23,6 +26,14 @@ describe('tahmin varsayımları', () => {
     expect(forecastAgeDays(compiled)).toBe(0);
     const later = new Date(compiled.getTime() + (FORECAST_STALE_DAYS + 1) * 86_400_000);
     expect(forecastAgeDays(later)).toBeGreaterThan(FORECAST_STALE_DAYS);
+  });
+
+  it('dolar beklentisi: anket varsa güncel değer, yoksa elle yazılan son değer', () => {
+    const live = usdTryReference({ usdTry12m: { value: 61.5, month: '2026-11' } });
+    expect(live).toEqual({ value: 61.5, source: 'TCMB Piyasa Katılımcıları Anketi (Kasım 2026), 12 ay sonrası', live: true });
+    expect(usdTryReference({ usdTry12m: null })).toEqual({ ...USDTRY_FORECAST, live: false });
+    expect(usdTryReference(null).live).toBe(false);
+    expect(monthName('2026-01')).toBe('Ocak 2026');
   });
 
   it('aylık büyüme 12 ayda hedefe ulaşır', () => {
@@ -42,8 +53,8 @@ describe('tahmin varsayımları', () => {
 
   it('peşin parayı tutma: maliyet başta kesilir, taksitler düşülür', () => {
     const offer = { cashPrice: 100_000, downPayment: 0, count: 2, installment: 10_000, firstAfterMonths: 1 };
-    expect(simulateHolding(offer, 0, 0.01)).toEqual([89_000, 79_000]);
-    const b = simulateHolding(offer, 0.1);
+    expect(simulateHolding(scheduleFromInstallments(offer), 0, 0.01)).toEqual([89_000, 79_000]);
+    const b = simulateHolding(scheduleFromInstallments(offer), 0.1);
     expect(b[0]).toBeCloseTo(100_000 * 1.1 - 10_000, 6);
     expect(b[1]).toBeCloseTo(b[0]! * 1.1 - 10_000, 6);
   });

@@ -7,9 +7,10 @@ import {
   goldBreakEvenOz,
   monthlyGrowth,
   simulateHolding,
-  USDTRY_FORECAST,
+  usdTryReference,
+  type Expectations,
   type InstallmentComparison,
-  type InstallmentOffer,
+  type PaymentSchedule,
   type Settings,
 } from '@paramin-karsiligi/shared';
 import { useState } from 'react';
@@ -31,6 +32,8 @@ export interface Market {
   goldOz: number;
   usdTry: number;
   settings: Settings;
+  /** TCMB anketi beklentileri; EVDS anahtarı yoksa null */
+  expectations: Expectations | null;
 }
 
 type OptionId = 'deposit' | 'gold' | 'usd';
@@ -50,11 +53,11 @@ type View = 'spend' | 'keep';
 const VIEWS: Record<View, { label: string; hint: string }> = {
   keep: {
     label: 'Paranın büyümesi',
-    hint: 'Peşin paranın (peşinat düşülmüş) taksit süresince nasıl büyüyeceği; taksitler düşülmez.',
+    hint: 'Peşin paranın (bugün ödenen düşülmüş) plan süresince nasıl büyüyeceği; ödemeler düşülmez.',
   },
   spend: {
-    label: 'Taksitler ödenirken',
-    hint: 'Peşin parayı bekletip her ay taksiti oradan öderseniz kalan para. Sıfırın altı, paranın taksitlere yetmediğini gösterir.',
+    label: 'Ödemeler yapılırken',
+    hint: 'Peşin parayı bekletip ödemeleri oradan yaparsanız kalan para. Sıfırın altı, paranın ödemelere yetmediğini gösterir.',
   },
 };
 
@@ -62,14 +65,15 @@ const usd = (v: number) => `$${formatNumber(v, 0)}`;
 const annual = (monthly: number) => Math.pow(1 + monthly, 12) - 1;
 
 /**
- * Peşin parayı mevduat yerine altında ya da dolarda tutup taksitleri oradan ödeseydiniz.
+ * Peşin parayı mevduat yerine altında ya da dolarda tutup ödemeleri oradan yapsaydınız.
  * Altın ve kur için yayımlanmış tahminlerin ortalaması (ya da kullanıcının tahmini) varsayılır ve ekranda yazılır.
  */
-export function HoldingComparison({ offer, result, market }: { offer: InstallmentOffer; result: InstallmentComparison; market: Market }) {
+export function HoldingComparison({ schedule, result, market }: { schedule: PaymentSchedule; result: InstallmentComparison; market: Market }) {
   const [view, setView] = useState<View>('keep');
   const { settings } = market;
   const ozTarget = settings.forecast.goldUsdOz ?? GOLD_FORECAST_AVERAGE;
-  const usdTarget = settings.forecast.usdTry ?? USDTRY_FORECAST.value;
+  const usdRef = usdTryReference(market.expectations);
+  const usdTarget = settings.forecast.usdTry ?? usdRef.value;
   const ozOwn = settings.forecast.goldUsdOz != null;
   const usdOwn = settings.forecast.usdTry != null;
 
@@ -97,15 +101,15 @@ export function HoldingComparison({ offer, result, market }: { offer: Installmen
     },
   ];
 
-  // Taksitler düşülerek ve düşülmeden bakiyeler; ilk nokta bugün, alım maliyeti kesilmiş başlangıç
-  const keepOffer = { ...offer, installment: 0 };
-  const start = offer.cashPrice - offer.downPayment;
+  // Ödemeler düşülerek ve düşülmeden bakiyeler; ilk nokta bugün, alım maliyeti kesilmiş başlangıç
+  const keepSchedule: PaymentSchedule = { ...schedule, payments: schedule.payments.map((p) => ({ ...p, amount: 0 })) };
+  const start = schedule.cashPrice - schedule.upfront;
   const series = Object.fromEntries(
     options.map((o) => [
       o.id,
       {
-        spend: [start * (1 - o.costRate), ...simulateHolding(offer, o.monthly, o.costRate)],
-        keep: [start * (1 - o.costRate), ...simulateHolding(keepOffer, o.monthly, o.costRate)],
+        spend: [start * (1 - o.costRate), ...simulateHolding(schedule, o.monthly, o.costRate)],
+        keep: [start * (1 - o.costRate), ...simulateHolding(keepSchedule, o.monthly, o.costRate)],
       },
     ]),
   ) as Record<OptionId, Record<View, number[]>>;
@@ -113,7 +117,7 @@ export function HoldingComparison({ offer, result, market }: { offer: Installmen
   const months = [0, ...result.rows.map((r) => r.month)];
   const data = months.map((m, i) => ({
     label: i === 0 ? 'Bugün' : `${formatMonthFromNow(m)}`,
-    step: i === 0 ? 'Başlangıç' : view === 'spend' ? `${i}. taksit sonrası` : `${i}. taksit ayı`,
+    step: i === 0 ? 'Başlangıç' : view === 'spend' ? `${i}. ödeme sonrası` : `${i}. ödeme ayı`,
     ...Object.fromEntries(options.map((o) => [o.id, series[o.id][view][i]!])),
   }));
 
@@ -124,7 +128,7 @@ export function HoldingComparison({ offer, result, market }: { offer: Installmen
     <section className="panel">
       <h2>Peşin parayı nerede tutsaydınız?</h2>
       <p className="muted small hint-top">
-        Taksitli alıp peşin parayı bekletirseniz son taksitten sonra elinizde kalan (alım-satım maliyeti düşülmüş).
+        Bu planla alıp peşin parayı bekletirseniz son ödemeden sonra elinizde kalan (alım-satım maliyeti düşülmüş).
       </p>
 
       <div className="holding-cards">
@@ -240,12 +244,12 @@ export function HoldingComparison({ offer, result, market }: { offer: Installmen
           <li>
             Dolar/TL 12 ay sonra <strong>{formatNumber(usdTarget)}</strong>
             {usdOwn
-              ? ` (sizin tahmininiz; ${USDTRY_FORECAST.source} ${formatNumber(USDTRY_FORECAST.value)})`
-              : ` (${USDTRY_FORECAST.source})`}
+              ? ` (sizin tahmininiz; ${usdRef.source} ${formatNumber(usdRef.value)})`
+              : ` (${usdRef.source})`}
             . Bugün {formatNumber(market.usdTry)}.
           </li>
           <li>
-            Fiyatların bugünden bu hedeflere düzenli arttığı, taksitler 12 aydan uzunsa aynı yıllık hızla sürdüğü
+            Fiyatların bugünden bu hedeflere düzenli arttığı, plan 12 aydan uzunsa aynı yıllık hızla sürdüğü
             varsayılır. Mevduat faizinin de sabit kaldığı varsayılır.
           </li>
           <li>

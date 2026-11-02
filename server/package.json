@@ -4,11 +4,12 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "tsx watch --clear-screen=false src/index.ts",
-    "start": "tsx src/index.ts",
+    "dev": "tsx watch --clear-screen=false --env-file-if-exists=.env src/index.ts",
+    "start": "tsx --env-file-if-exists=.env src/index.ts",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
-    "snapshot": "tsx src/snapshot.ts"
+    "snapshot": "tsx --env-file-if-exists=.env src/snapshot.ts",
+    "evds": "tsx --env-file-if-exists=.env src/evdsExplore.ts"
   },
   "dependencies": {
     "@paramin-karsiligi/shared": "*",

@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { defaultInstallments } from './paymentOptions';
+import type { PurchasePlanInput } from './types';
 
 const isoDate = z
   .string()
@@ -63,27 +65,53 @@ const optionalAmount = z
   .nullable();
 const optionalRate = z.number().min(-100).max(1000).nullable();
 
-/** Alınacak ürün: eksik alanlar null olabilir, kullanıcı doldurdukça kaydedilir */
-export const purchasePlanSchema = z.object({
-  name: z.string().trim().min(1, 'Ad gerekli').max(100),
-  cashPrice: optionalAmount,
+const optionId = z.string().trim().min(1).max(40);
+const optionName = z.string().trim().min(1, 'Seçenek adı gerekli').max(60);
+
+const installmentsOptionSchema = z.object({
+  id: optionId,
+  name: optionName,
+  kind: z.literal('installments'),
   downPayment: optionalAmount,
   count: z.number().int().min(1).max(360).nullable(),
   amountMode: z.enum(['monthly', 'total']),
   amount: optionalAmount,
-  firstAfterMonths: z.union([z.literal(0), z.literal(1)]),
+  firstAfterMonths: z.number().int().min(0).max(60),
+});
+
+const customRowSchema = z.object({
+  afterMonths: z.number().int().min(0).max(360).nullable(),
+  value: optionalAmount,
+  unit: z.enum(['tl', 'pct']),
+});
+
+const customOptionSchema = z.object({
+  id: optionId,
+  name: optionName,
+  kind: z.literal('custom'),
+  totalPrice: optionalAmount,
+  rows: z.array(customRowSchema).max(60, 'En fazla 60 ödeme satırı girilebilir'),
+});
+
+export const paymentOptionSchema = z.discriminatedUnion('kind', [installmentsOptionSchema, customOptionSchema]);
+
+/** Alınacak ürün: eksik alanlar null olabilir, kullanıcı doldurdukça kaydedilir */
+export const purchasePlanSchema = z.object({
+  name: z.string().trim().min(1, 'Ad gerekli').max(100),
+  cashPrice: optionalAmount,
+  options: z
+    .array(paymentOptionSchema)
+    .min(1, 'En az bir ödeme seçeneği olmalı')
+    .max(8, 'En fazla 8 ödeme seçeneği eklenebilir')
+    .refine((list) => new Set(list.map((o) => o.id)).size === list.length, 'Seçenek kimlikleri benzersiz olmalı'),
   returnPct: optionalRate,
   inflationPct: optionalRate,
 });
 
-export const newPurchasePlan = (name: string) => ({
+export const newPurchasePlan = (name: string): PurchasePlanInput => ({
   name,
   cashPrice: null,
-  downPayment: null,
-  count: 12,
-  amountMode: 'monthly' as const,
-  amount: null,
-  firstAfterMonths: 1 as const,
+  options: [defaultInstallments()],
   returnPct: null,
   inflationPct: null,
 });

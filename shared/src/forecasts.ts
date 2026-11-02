@@ -5,6 +5,7 @@
  * Güncellerken listeyi ve FORECASTS_COMPILED_AT tarihini değiştirmeniz yeterli; ekrandaki metin buradan üretilir.
  * Kullanıcı Hesaplama varsayımları ekranından kendi değerini girebilir (Settings.forecast).
  */
+import type { Expectations } from './priceCalc';
 
 export interface ForecastSource {
   /** Kurum ve tahminin türü */
@@ -37,11 +38,30 @@ export const GOLD_FORECASTS: ForecastSource[] = [
   { source: 'UBS, Eylül 2027', value: 5400 },
 ];
 
-/** 12 ay sonrası dolar/TL beklentisi */
+/**
+ * 12 ay sonrası dolar/TL beklentisi: EVDS anahtarı yokken kullanılan, elle yazılmış son bilinen değer. Anahtar varsa
+ * anketin en güncel değeri otomatik gelir (usdTryReference).
+ */
 export const USDTRY_FORECAST: ForecastSource = {
   source: 'TCMB Piyasa Katılımcıları Anketi (Ekim 2026), 12 ay sonrası',
   value: 59.26,
 };
+
+const MONTH_NAMES = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+
+/** "2026-10" → "Ekim 2026" */
+export function monthName(month: string): string {
+  const [y, m] = month.split('-');
+  return `${MONTH_NAMES[Number(m) - 1] ?? m} ${y}`;
+}
+
+/** Dolar/TL için başvurulacak beklenti: anketten gelen güncel değer varsa o (live), yoksa elle yazılmış son değer */
+export function usdTryReference(expectations: Pick<Expectations, 'usdTry12m'> | null | undefined): ForecastSource & { live: boolean } {
+  const e = expectations?.usdTry12m;
+  return e
+    ? { value: e.value, source: `TCMB Piyasa Katılımcıları Anketi (${monthName(e.month)}), 12 ay sonrası`, live: true }
+    : { ...USDTRY_FORECAST, live: false };
+}
 
 export const average = (xs: readonly number[]) => xs.reduce((s, x) => s + x, 0) / xs.length;
 

@@ -226,6 +226,9 @@ export function PriceStatusPanel({ compact = false }: { compact?: boolean }) {
   const refresh = useRefreshPrices();
   const cpi = data?.find((s) => s.assetId === 'TUFE');
   // TÜFE bir endekstir, fiyatı anlamlı değil; son açıklanan ay aşağıda yazılır
+  const checks = (data ?? []).filter((s) => s.official);
+  // Yahoo ile TCMB resmî kuru arasında %1,5'ten büyük fark veri hatası şüphesidir
+  const bigGap = checks.some((s) => Math.abs(s.official!.deviationPct) > 1.5);
   const shown = data?.filter((s) => (compact ? SIDEBAR_ASSETS.includes(s.assetId as AssetId) : s.assetId !== 'TUFE'));
 
   return (
@@ -236,13 +239,28 @@ export function PriceStatusPanel({ compact = false }: { compact?: boolean }) {
       <dl className="price-list">
         {shown?.map((s) => (
           <div key={s.assetId} className="price-row">
-            <dt>{compact ? ASSETS[s.assetId as AssetId].shortLabel : ASSETS[s.assetId as AssetId].label}</dt>
-            <dd title={s.ratePct != null ? `Politika faizi (brüt), son karar ${formatDate(s.sourceLastDate)}` : undefined}>
+            <dt>{s.rateKind === 'deposit' ? 'Mevduat faizi' : compact ? ASSETS[s.assetId as AssetId].shortLabel : ASSETS[s.assetId as AssetId].label}</dt>
+            <dd
+              title={
+                s.ratePct == null
+                  ? undefined
+                  : s.rateKind === 'deposit'
+                    ? `Bankaların yeni açılan TL mevduata verdiği faiz (yıllık, brüt, TCMB), ${formatDate(s.sourceLastDate)} haftası`
+                    : `Politika faizi (brüt), son karar ${formatDate(s.sourceLastDate)}`
+              }
+            >
               {s.ratePct != null ? `%${formatNumber(s.ratePct)}` : formatTL(s.lastPrice)}
             </dd>
           </div>
         ))}
       </dl>
+      {checks.length > 0 && (
+        <p className={`prices-meta${bigGap ? ' warn' : ''}`}>
+          {bigGap
+            ? `Dikkat: ${checks.map((s) => `${s.assetId} kurunda TCMB ile %${formatNumber(Math.abs(s.official!.deviationPct), 1)} fark`).join(', ')}. Hesaplar Yahoo verisini kullanıyor.`
+            : `Kur kontrolü: Yahoo, TCMB resmî kuruyla uyumlu (${checks.map((s) => `${s.assetId} %${formatNumber(Math.abs(s.official!.deviationPct), 1)} fark`).join(', ')}).`}
+        </p>
+      )}
       <p className="prices-meta">
         {data?.[0]?.lastDate && <>Son piyasa verisi {formatDate(data[0].lastDate)}. </>}
         {cpi?.sourceLastDate && (

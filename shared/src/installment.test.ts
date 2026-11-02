@@ -4,8 +4,11 @@ import {
   impliedMonthlyRate,
   monthlyFromDailyCompounded,
   netDepositRatePct,
+  scheduleFromInstallments,
   type InstallmentOffer,
 } from './installment';
+
+const implied = (o: InstallmentOffer) => impliedMonthlyRate(scheduleFromInstallments(o));
 
 const offer = (o: Partial<InstallmentOffer> = {}): InstallmentOffer => ({
   cashPrice: 120_000,
@@ -39,19 +42,19 @@ describe('peşin mi taksit mi', () => {
 
   it('teklifin içindeki faizi bulur', () => {
     // 100.000 peşin yerine bir ay sonra 110.000: aylık %10
-    expect(impliedMonthlyRate(offer({ cashPrice: 100_000, count: 1, installment: 110_000 }))).toBeCloseTo(0.1, 9);
+    expect(implied(offer({ cashPrice: 100_000, count: 1, installment: 110_000 }))).toBeCloseTo(0.1, 9);
     // Peşinat sonrası finanse edilen tutar
-    const m = impliedMonthlyRate(offer({ cashPrice: 150_000, downPayment: 50_000, count: 1, installment: 105_000 }));
+    const m = implied(offer({ cashPrice: 150_000, downPayment: 50_000, count: 1, installment: 105_000 }));
     expect(m).toBeCloseTo(0.05, 9);
     // Taksitli toplam peşinden ucuzsa negatif
-    expect(impliedMonthlyRate(offer({ installment: 9_000 }))!).toBeLessThan(0);
+    expect(implied(offer({ installment: 9_000 }))!).toBeLessThan(0);
     // Peşinat peşin fiyatı karşılıyorsa finansman yok
-    expect(impliedMonthlyRate(offer({ downPayment: 120_000 }))).toBeNull();
+    expect(implied(offer({ downPayment: 120_000 }))).toBeNull();
   });
 
   it('getiri teklifin faizine eşitse fark sıfırdır', () => {
     const o = offer({ installment: 11_000 });
-    const m = impliedMonthlyRate(o)!;
+    const m = implied(o)!;
     const c = compareInstallment(o, { annualReturnPct: 0, annualInflationPct: null });
     // Aylık m'ye denk gelen günlük bileşik yıllık faiz
     const annualPct = (Math.pow(1 + m, 12 / 365) - 1) * 365 * 100;

@@ -1,6 +1,7 @@
 import type {
   AssetId,
   BulkPaymentInput,
+  Expectations,
   Investment,
   InvestmentAnalysis,
   InvestmentInput,
@@ -56,6 +57,7 @@ export const httpApi = {
   saveSettings: (s: Settings) => request<Settings>('PUT', '/api/settings', s),
 
   priceStatus: () => request<PriceStatus[]>('GET', '/api/prices/status'),
+  expectations: () => request<Expectations>('GET', '/api/prices/expectations'),
   refreshPrices: () => request<PriceStatus[]>('POST', '/api/prices/refresh'),
   monthlyPrices: (assetId: AssetId, from?: string) =>
     request<{ date: string; price: number }[]>('GET', `/api/prices/${assetId}/monthly${from ? `?from=${from}` : ''}`),

@@ -1,10 +1,32 @@
 /**
- * Peşin mi, taksit mi? Gelecekte alınacak bir ürün için peşin fiyat ile taksitli teklifi karşılaştırır.
+ * Peşin mi, taksit mi? Gelecekte alınacak bir ürün için peşin fiyat ile ileri tarihli ödeme planını karşılaştırır.
  *
- * Model: Peşin fiyat kadar paranız var. Taksitli alırsanız peşinatı bugün ödeyip kalanını getiri getiren bir yerde
- * (mevduat) tutar, taksitleri oradan ödersiniz. Taksitlerin bugünkü değeri peşin fiyattan düşükse taksit avantajlıdır.
- * Süreler ay cinsindendir (0 = bugün).
+ * Model: Peşin fiyat kadar paranız var. Plana göre alırsanız bugün ödenecek kısmı (peşinat) hemen ödeyip kalanını getiri
+ * getiren bir yerde (mevduat) tutar, sonraki ödemeleri oradan yaparsınız. Ödemelerin bugünkü değeri peşin fiyattan
+ * düşükse plan avantajlıdır. Süreler ay cinsindendir (0 = bugün).
+ *
+ * Eşit taksit de özel plan da (ör. "6 ay sonra yarısı, 12 ay sonra yarısı") aynı takvime (PaymentSchedule) çevrilir;
+ * hesap yalnızca takvim üzerinden yapılır.
  */
+
+/** Bugünden sonraki bir ödeme */
+export interface SchedulePayment {
+  /** Bugünden kaç ay sonra (1 ve üstü) */
+  month: number;
+  amount: number;
+}
+
+/** Ödeme takvimi: bugün ödenen tutar ve sonraki aylardaki ödemeler */
+export interface PaymentSchedule {
+  /** Peşin fiyat (TL) */
+  cashPrice: number;
+  /** Bugün (ay 0) ödenen toplam tutar: peşinat ve bugüne denk gelen ödemeler */
+  upfront: number;
+  /** Bugünden sonraki ödemeler; aya göre sıralı, her ay tek satır */
+  payments: SchedulePayment[];
+}
+
+/** Eşit taksitli teklif (eski ve basit giriş biçimi) */
 export interface InstallmentOffer {
   /** Peşin fiyat (TL) */
   cashPrice: number;
@@ -38,24 +60,26 @@ export interface InstallmentRow {
 }
 
 export interface InstallmentComparison {
-  /** Peşinat + taksitler toplamı */
+  /** Bugün ödenen tutar (satırlara dahil değildir) */
+  upfront: number;
+  /** Bugün ödenen ve sonraki ödemelerin toplamı */
   totalPrice: number;
-  /** Taksitli toplamın peşin fiyattan farkı (TL ve oran) */
+  /** Planın toplamının peşin fiyattan farkı (TL ve oran) */
   markup: number;
   markupPct: number;
-  /** Taksitlerin (peşinat dahil) bugünkü değeri */
+  /** Ödemelerin (bugün ödenen dahil) bugünkü değeri */
   presentValue: number;
-  /** Peşin fiyat − bugünkü değer: pozitifse taksit, negatifse peşin avantajlı */
+  /** Peşin fiyat − bugünkü değer: pozitifse plan, negatifse peşin avantajlı */
   advantage: number;
-  /** Peşin parayı mevduata koyup taksitleri oradan ödeyince son taksitten sonra kalan (negatifse eksik) */
+  /** Peşin parayı mevduata koyup ödemeleri oradan yapınca son ödemeden sonra kalan (negatifse eksik) */
   endBalance: number;
-  /** Taksitli teklifin içindeki faiz (aylık ve yıllık bileşik); hesaplanamazsa null */
+  /** Planın içindeki faiz (aylık ve yıllık bileşik); hesaplanamazsa null */
   impliedMonthlyRate: number | null;
   impliedAnnualRate: number | null;
   /** Alternatif getirinin aylık ve yıllık bileşik karşılığı */
   returnMonthlyRate: number;
   returnAnnualRate: number;
-  /** Taksitlerin (peşinat dahil) enflasyona göre bugünün parasıyla toplamı */
+  /** Ödemelerin (bugün ödenen dahil) enflasyona göre bugünün parasıyla toplamı */
   realTotal: number | null;
   rows: InstallmentRow[];
 }
@@ -79,20 +103,36 @@ function discount(amount: number, monthlyRate: number, month: number) {
   return amount / Math.pow(1 + monthlyRate, month);
 }
 
-function monthsOf(offer: InstallmentOffer): number[] {
-  return Array.from({ length: offer.count }, (_, i) => offer.firstAfterMonths + i);
+/**
+ * Ay ve tutar listesinden takvim kurar: bugüne (ay 0) denk gelenler peşine eklenir, aynı aydaki ödemeler birleşir,
+ * sonuç aya göre sıralanır.
+ */
+export function buildPaymentSchedule(cashPrice: number, items: readonly SchedulePayment[], downPayment = 0): PaymentSchedule {
+  let upfront = downPayment;
+  const byMonth = new Map<number, number>();
+  for (const { month, amount } of items) {
+    if (month <= 0) upfront += amount;
+    else byMonth.set(month, (byMonth.get(month) ?? 0) + amount);
+  }
+  const payments = [...byMonth.entries()].sort((a, b) => a[0] - b[0]).map(([month, amount]) => ({ month, amount }));
+  return { cashPrice, upfront, payments };
+}
+
+/** Eşit taksitli teklifi takvime çevirir */
+export function scheduleFromInstallments(offer: InstallmentOffer): PaymentSchedule {
+  const items = Array.from({ length: offer.count }, (_, i) => ({ month: offer.firstAfterMonths + i, amount: offer.installment }));
+  return buildPaymentSchedule(offer.cashPrice, items, offer.downPayment);
 }
 
 /**
- * Taksitli teklifin aylık faizi: (peşin − peşinat) = Σ taksit / (1+m)^ay denklemini çözer.
- * Taksitli toplam peşinden düşükse oran negatif çıkar. Finanse edilen tutar yoksa null.
+ * Planın aylık faizi: (peşin − bugün ödenen) = Σ ödeme / (1+m)^ay denklemini çözer.
+ * Toplam peşinden düşükse oran negatif çıkar. Finanse edilen tutar ya da sonraki ödeme yoksa null.
  */
-export function impliedMonthlyRate(offer: InstallmentOffer): number | null {
-  const financed = offer.cashPrice - offer.downPayment;
-  if (financed <= 0 || offer.count <= 0 || offer.installment <= 0) return null;
-  const months = monthsOf(offer);
-  // Bugün ödenen taksitler iskontodan etkilenmez; f(m) m'ye göre azalan
-  const f = (m: number) => months.reduce((s, k) => s + discount(offer.installment, m, k), 0) - financed;
+export function impliedMonthlyRate(schedule: PaymentSchedule): number | null {
+  const financed = schedule.cashPrice - schedule.upfront;
+  if (financed <= 0 || schedule.payments.length === 0) return null;
+  // f(m) m'ye göre azalan
+  const f = (m: number) => schedule.payments.reduce((s, p) => s + discount(p.amount, m, p.month), 0) - financed;
 
   let lo = -0.99;
   let hi = 1;
@@ -108,49 +148,55 @@ export function impliedMonthlyRate(offer: InstallmentOffer): number | null {
 }
 
 /**
- * Peşin paranın (peşinat düşülmüş) aylık sabit getirili bir yerde tutulup taksitlerin oradan ödendiği durum.
- * costRate: alırken kesilen alım-satım maliyeti (ör. altın için 0,01). Her taksitten sonraki bakiyeyi döndürür.
+ * Peşin paranın (bugün ödenen düşülmüş) aylık sabit getirili bir yerde tutulup ödemelerin oradan yapıldığı durum.
+ * costRate: alırken kesilen alım-satım maliyeti (ör. altın için 0,01). Her ödemeden sonraki bakiyeyi döndürür.
  */
-export function simulateHolding(offer: InstallmentOffer, monthlyRate: number, costRate = 0): number[] {
-  let balance = (offer.cashPrice - offer.downPayment) * (1 - costRate);
+export function simulateHolding(schedule: PaymentSchedule, monthlyRate: number, costRate = 0): number[] {
+  let balance = (schedule.cashPrice - schedule.upfront) * (1 - costRate);
   let lastMonth = 0;
-  return monthsOf(offer).map((month) => {
+  return schedule.payments.map(({ month, amount }) => {
     balance *= Math.pow(1 + monthlyRate, month - lastMonth);
     lastMonth = month;
-    balance -= offer.installment;
+    balance -= amount;
     return balance;
   });
 }
 
-export function compareInstallment(offer: InstallmentOffer, assumptions: InstallmentAssumptions): InstallmentComparison {
+export function compareSchedule(schedule: PaymentSchedule, assumptions: InstallmentAssumptions): InstallmentComparison {
   const r = monthlyFromDailyCompounded(assumptions.annualReturnPct);
   const p = assumptions.annualInflationPct == null ? null : monthlyFromEffective(assumptions.annualInflationPct);
 
-  const balances = simulateHolding(offer, r);
-  const rows: InstallmentRow[] = monthsOf(offer).map((month, i) => ({
+  const balances = simulateHolding(schedule, r);
+  const rows: InstallmentRow[] = schedule.payments.map(({ month, amount }, i) => ({
     month,
-    amount: offer.installment,
-    presentValue: discount(offer.installment, r, month),
-    realValue: p == null ? null : discount(offer.installment, p, month),
+    amount,
+    presentValue: discount(amount, r, month),
+    realValue: p == null ? null : discount(amount, p, month),
     balanceAfter: balances[i]!,
   }));
 
-  const totalPrice = offer.downPayment + offer.count * offer.installment;
-  const presentValue = offer.downPayment + rows.reduce((s, row) => s + row.presentValue, 0);
-  const monthly = impliedMonthlyRate(offer);
+  const totalPrice = schedule.upfront + schedule.payments.reduce((s, x) => s + x.amount, 0);
+  const presentValue = schedule.upfront + rows.reduce((s, row) => s + row.presentValue, 0);
+  const monthly = impliedMonthlyRate(schedule);
 
   return {
+    upfront: schedule.upfront,
     totalPrice,
-    markup: totalPrice - offer.cashPrice,
-    markupPct: offer.cashPrice > 0 ? (totalPrice - offer.cashPrice) / offer.cashPrice : 0,
+    markup: totalPrice - schedule.cashPrice,
+    markupPct: schedule.cashPrice > 0 ? (totalPrice - schedule.cashPrice) / schedule.cashPrice : 0,
     presentValue,
-    advantage: offer.cashPrice - presentValue,
-    endBalance: balances.at(-1) ?? offer.cashPrice - offer.downPayment,
+    advantage: schedule.cashPrice - presentValue,
+    endBalance: balances.at(-1) ?? schedule.cashPrice - schedule.upfront,
     impliedMonthlyRate: monthly,
     impliedAnnualRate: monthly == null ? null : Math.pow(1 + monthly, 12) - 1,
     returnMonthlyRate: r,
     returnAnnualRate: Math.pow(1 + r, 12) - 1,
-    realTotal: p == null ? null : offer.downPayment + rows.reduce((s, row) => s + row.realValue!, 0),
+    realTotal: p == null ? null : schedule.upfront + rows.reduce((s, row) => s + row.realValue!, 0),
     rows,
   };
+}
+
+/** Eşit taksitli teklif için kısayol: takvime çevirip karşılaştırır */
+export function compareInstallment(offer: InstallmentOffer, assumptions: InstallmentAssumptions): InstallmentComparison {
+  return compareSchedule(scheduleFromInstallments(offer), assumptions);
 }

@@ -3,12 +3,12 @@ import {
   DEFAULT_SETTINGS,
   FORECASTS_COMPILED_AT,
   GOLD_FORECAST_AVERAGE,
-  USDTRY_FORECAST,
+  usdTryReference,
   type AssetGroup,
   type Settings,
 } from '@paramin-karsiligi/shared';
 import { useEffect, useState, type FormEvent } from 'react';
-import { useSaveSettings, useSettings } from '../api/hooks';
+import { useExpectations, useSaveSettings, useSettings } from '../api/hooks';
 import { formatDate, formatNumber } from '../lib/format';
 
 /** Hesaplama varsayımları: alım-satım maliyeti, altın primi, stopajlar */
@@ -16,6 +16,8 @@ export function SettingsView({ onClose }: { onClose: () => void }) {
   const { data, error } = useSettings();
   const save = useSaveSettings();
   const [draft, setDraft] = useState<Settings | null>(null);
+  const expectations = useExpectations();
+  const usdRef = usdTryReference(expectations.data);
 
   useEffect(() => {
     if (data) setDraft(data);
@@ -83,9 +85,10 @@ export function SettingsView({ onClose }: { onClose: () => void }) {
       <section className="panel">
         <h2>Mevduat faizi</h2>
         <p className="muted small">
-          Faiz, TCMB politika faizinden hesaplanır. Bankaların mevduat faizi bundan farklı olabilir (ör. 2011–2018 arası
-          daha yüksek, 2023 sonrası çoğu zaman daha düşük): farkı puan olarak girebilirsiniz. Stopaj oranı dönemlere göre
-          değişmiştir; burada tek oran uygulanır.
+          Faiz, TCMB'nin yayımladığı, bankaların yeni açılan TL mevduata verdiği gerçek faizden hesaplanır (bireysel
+          mevduat, 3 aya kadar vade; 2012 öncesi tüm mevduat). TCMB EVDS verisine ulaşılamazsa politika faizi kullanılır.
+          Kendi bankanızın faizi farklıysa farkı puan olarak girebilirsiniz. Stopaj oranı dönemlere göre değişmiştir;
+          burada tek oran uygulanır.
         </p>
         <div className="form-grid">
           <NumberField
@@ -94,7 +97,7 @@ export function SettingsView({ onClose }: { onClose: () => void }) {
             onChange={(v) => set({ depositWithholdingPct: v })}
           />
           <NumberField
-            label="Politika faizine fark (puan)"
+            label="Mevduat faizine fark (puan)"
             value={draft.depositSpreadPts}
             min={-50}
             onChange={(v) => set({ depositSpreadPts: v })}
@@ -126,7 +129,7 @@ export function SettingsView({ onClose }: { onClose: () => void }) {
         <p className="muted small">
           Alacaklarım ekranında peşin parayı altında ya da dolarda tutma hesabı için 12 ay sonrası tahminleri. Boş
           bırakırsanız yayımlanmış tahminlerin ortalaması kullanılır ({formatDate(FORECASTS_COMPILED_AT)} itibarıyla: ons
-          ${formatNumber(GOLD_FORECAST_AVERAGE, 0)}, dolar/TL {formatNumber(USDTRY_FORECAST.value)}).
+          ${formatNumber(GOLD_FORECAST_AVERAGE, 0)}, dolar/TL {formatNumber(usdRef.value)}{usdRef.live ? ', anketin en güncel değeri' : ''}).
         </p>
         <div className="form-grid">
           <OptionalNumberField
@@ -138,7 +141,7 @@ export function SettingsView({ onClose }: { onClose: () => void }) {
           <OptionalNumberField
             label="Dolar/TL, 12 ay sonra"
             value={draft.forecast.usdTry}
-            placeholder={formatNumber(USDTRY_FORECAST.value)}
+            placeholder={formatNumber(usdRef.value)}
             onChange={(v) => set({ forecast: { ...draft.forecast, usdTry: v } })}
           />
         </div>

@@ -5,3 +5,4 @@ server/data/*.db-*
 *.log
 .agents/
 skills-lock.json
+.env

@@ -12,6 +12,12 @@ export function priceRoutes(app: FastifyInstance, c: Container) {
     return c.prices.status();
   });
 
+  /** TCMB Piyasa Katılımcıları Anketi beklentileri (EVDS anahtarı yoksa boş) */
+  app.get('/api/prices/expectations', async () => {
+    await c.prices.ensureFresh();
+    return c.prices.expectations();
+  });
+
   app.post('/api/prices/refresh', async () => {
     await c.prices.ensureFresh(true);
     return c.prices.status();

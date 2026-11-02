@@ -44,21 +44,51 @@ export interface BulkPaymentInput {
   note?: string | null;
 }
 
-/**
- * Alınacak bir ürün için peşin/taksit teklifi ("Alacaklarım"). Tutarlar TL; girilmemiş alanlar null.
- * Hesap shared/src/installment.ts içinde, arayüzde yapılır.
- */
-export interface PurchasePlan {
-  id: number;
+/** Eşit taksit: peşinat + aylık eşit taksitler */
+export interface InstallmentsOption {
+  /** İstemcinin ürettiği kısa kimlik (seçenekler arasında benzersiz) */
+  id: string;
   name: string;
-  cashPrice: number | null;
+  kind: 'installments';
   downPayment: number | null;
   count: number | null;
   /** amount aylık taksit mi, peşinat dahil taksitli toplam mı */
   amountMode: 'monthly' | 'total';
   amount: number | null;
   /** İlk taksit kaç ay sonra (0 = bugün) */
-  firstAfterMonths: 0 | 1;
+  firstAfterMonths: number;
+}
+
+/** Özel ödeme planı satırı: "6 ay sonra %50" ya da "12 ay sonra 40.000 TL" */
+export interface CustomPaymentRow {
+  /** Bugünden kaç ay sonra (0 = bugün) */
+  afterMonths: number | null;
+  value: number | null;
+  /** value TL mi, bu seçeneğin toplam fiyatının yüzdesi mi */
+  unit: 'tl' | 'pct';
+}
+
+/** Özel ödeme planı: ör. yarısı bugün, yarısı 6 ay sonra */
+export interface CustomOption {
+  id: string;
+  name: string;
+  kind: 'custom';
+  /** Bu seçenekteki toplam fiyat (yüzde satırlarının tabanı); null ise peşin fiyat */
+  totalPrice: number | null;
+  rows: CustomPaymentRow[];
+}
+
+export type PaymentOption = InstallmentsOption | CustomOption;
+
+/**
+ * Alınacak bir ürün için peşin fiyat ve alternatif ödeme seçenekleri ("Alacaklarım"). Tutarlar TL; girilmemiş
+ * alanlar null. Hesap shared/src/installment.ts içinde, arayüzde yapılır.
+ */
+export interface PurchasePlan {
+  id: number;
+  name: string;
+  cashPrice: number | null;
+  options: PaymentOption[];
   /** Elle girilen yıllık net getiri ve enflasyon (%); null ise güncel değer kullanılır */
   returnPct: number | null;
   inflationPct: number | null;
@@ -75,6 +105,10 @@ export interface PriceStatus {
   lastFetchedAt: string | null;
   /** Faiz tipi varlıklarda güncel yıllık faiz (%) */
   ratePct: number | null;
+  /** ratePct hangi faiz: bankaların gerçek mevduat faizi ('deposit') ya da TCMB politika faizi ('policy') */
+  rateKind: 'deposit' | 'policy' | null;
+  /** Döviz varlıklarında TCMB resmî kuruyla çapraz kontrol (EVDS anahtarı yoksa null) */
+  official: { price: number; date: string; deviationPct: number } | null;
   /** Ham kaynağın son tarihi (faizde son karar, TÜFE'de son açıklanan ay) */
   sourceLastDate: string | null;
 }

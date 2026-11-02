@@ -5,6 +5,7 @@ import {
   investmentSchema,
   isAssetId,
   monthRange,
+  normalizePlan,
   paymentSchema,
   PriceCalculator,
   purchasePlanSchema,
@@ -41,7 +42,7 @@ interface Store {
 const store: Store = (() => {
   const saved = readItem<Store>(STORE_KEY);
   return saved
-    ? { ...saved, plans: saved.plans ?? [], settings: withDefaults(saved.settings) }
+    ? { ...saved, plans: (saved.plans ?? []).map(normalizePlan), settings: withDefaults(saved.settings) }
     : { nextId: 1, investments: [], payments: [], plans: [], settings: DEFAULT_SETTINGS };
 })();
 
@@ -214,6 +215,7 @@ export const localApi: Api = {
   },
 
   priceStatus: async () => (await loadPrices()).status(),
+  expectations: async () => (await loadPrices()).expectations(),
   refreshPrices: async () => (await loadPrices(true)).status(),
   monthlyPrices: async (assetId, from) => {
     if (!isAssetId(assetId)) throw new Error('Bilinmeyen varlık');

@@ -8,6 +8,8 @@ export const formatTLShort = (v: number) => `${compact.format(v)} ₺`;
 
 export function formatNumber(v: number | null | undefined, digits = 2) {
   if (v == null) return '—';
+  // Yuvarlanınca sıfır olan küçük negatif değerler "-0,0" diye görünmesin
+  if (Number(v.toFixed(digits)) === 0) v = 0;
   return v.toLocaleString('tr-TR', { minimumFractionDigits: digits, maximumFractionDigits: digits });
 }
 

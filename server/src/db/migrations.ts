@@ -86,4 +86,13 @@ export const migrations: { version: number; name: string; sql: string }[] = [
       );
     `,
   },
+  {
+    version: 4,
+    name: 'purchase-plan-options',
+    sql: `
+      -- Ürün başına birden fazla ödeme seçeneği (eşit taksit ya da özel plan) JSON olarak tutulur.
+      -- NULL ise kayıt eski tek teklif sütunlarından (down_kurus, installment_count...) okunur.
+      ALTER TABLE purchase_plans ADD COLUMN options_json TEXT;
+    `,
+  },
 ];

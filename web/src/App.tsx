@@ -48,7 +48,9 @@ export function App() {
   }, [page, section]);
 
   const list = section === 'bought' ? investments : plans;
-  const selectedId = section === 'bought' ? investmentId : planId;
+  // Hatırlanan kimlik silinmiş olabilir: liste yüklenip kimlik doğrulanmadan sayfa açılmaz (404 isteği olmasın)
+  const rememberedId = section === 'bought' ? investmentId : planId;
+  const selectedId = list.data?.some((i) => i.id === rememberedId) ? rememberedId : null;
 
   const nav: NavProps = {
     section,

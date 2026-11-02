@@ -5,6 +5,7 @@ import {
   SOURCES,
   toSeries,
   type AssetId,
+  type Expectations,
   type InvestmentAnalysis,
   type IsoDate,
   type Payment,
@@ -41,10 +42,15 @@ export class PriceService {
 
   /** Önbellek eskiyse sağlayıcılardan günceller; aynı anda tek güncelleme çalışır */
   async ensureFresh(force = false): Promise<void> {
-    const stale = Object.keys(SOURCES).filter((key) => force || this.isStale(key));
+    const stale = this.activeKeys().filter((key) => force || this.isStale(key));
     if (stale.length === 0) return;
     this.refreshing ??= this.refresh(stale).finally(() => (this.refreshing = null));
     return this.refreshing;
+  }
+
+  /** Çekilecek kaynaklar: sağlayıcısı kurulu olmayan isteğe bağlı kaynaklar (EVDS anahtarı yok) atlanır */
+  private activeKeys(): string[] {
+    return Object.keys(SOURCES).filter((key) => !SOURCES[key]!.optional || this.providers[SOURCES[key]!.provider]);
   }
 
   private isStale(key: string): boolean {
@@ -65,7 +71,10 @@ export class PriceService {
     // Önbellekte hiç verisi olmayan kaynak varsa hata ver; eski veri varsa onunla devam et
     if (errors.length) {
       this.opts.log?.(`Fiyat güncelleme hatası: ${errors.join('; ')}`);
-      if (keys.some((k) => !this.repo.lastDate(k))) throw new Error(`Bazı fiyatlar alınamadı: ${errors.join('; ')}`);
+      // İsteğe bağlı kaynakların eksikliği hata değildir; hesaplar yedeğe döner
+      if (keys.some((k) => !SOURCES[k]!.optional && !this.repo.lastDate(k))) {
+        throw new Error(`Bazı fiyatlar alınamadı: ${errors.join('; ')}`);
+      }
     }
   }
 
@@ -103,6 +112,10 @@ export class PriceService {
 
   status(): PriceStatus[] {
     return this.calc.status();
+  }
+
+  expectations(): Expectations {
+    return this.calc.expectations();
   }
 
   analyze(payments: readonly Payment[]): InvestmentAnalysis {

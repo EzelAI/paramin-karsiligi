@@ -5,8 +5,13 @@ const TROY_OUNCE_GRAMS = 31.1034768;
 
 /** Sağlayıcıdan çekilen ham veri kaynağı; alanları price_points tablosunda "anahtar" ve "anahtar:alan" olarak saklanır */
 export interface SourceSpec {
-  provider: 'yahoo' | 'tcmb' | 'tcmb-cpi';
+  provider: 'yahoo' | 'tcmb' | 'tcmb-cpi' | 'evds';
   symbol: string;
+  /**
+   * Yoksa ya da alınamazsa hata sayılmaz: bu kaynağa dayanan hesaplar bir yedeğe döner (ör. EVDS anahtarı yokken
+   * politika faizi). Sağlayıcı hiç kurulu değilse (anahtar yok) kaynak atlanır.
+   */
+  optional?: boolean;
   /**
    * Her güncellemede tüm geçmiş yeniden çekilir. Bölünme olan hisselerde gerekli
    * (geçmiş fiyatlar geriye dönük düzeltilir) ve tabloyu bütün olarak veren kaynaklarda.
@@ -20,19 +25,31 @@ export const SOURCES: Record<string, SourceSpec> = {
   'EURTRY=X': { provider: 'yahoo', symbol: 'EURTRY=X' },
   TCMB_POLICY: { provider: 'tcmb', symbol: 'POLICY', fullRefresh: true },
   TCMB_CPI: { provider: 'tcmb-cpi', symbol: 'CPI', fullRefresh: true },
+  // TCMB EVDS (EVDS_API_KEY gerekir). Anahtar yoksa atlanır; yukarıdaki web sayfası kaynaklarına dönülür.
+  /** Bankaların yeni açılan TL mevduatına verdiği faiz (yıllık %, haftalık) */
+  EVDS_DEPOSIT: { provider: 'evds', symbol: 'DEPOSIT_TRY', fullRefresh: true, optional: true },
+  /** TÜFE aylık % değişimleri (EVDS endeksinden) */
+  EVDS_CPI: { provider: 'evds', symbol: 'CPI', fullRefresh: true, optional: true },
+  /** Resmî döviz kuru (alış), Yahoo verisinin çapraz kontrolü için */
+  EVDS_USD: { provider: 'evds', symbol: 'USD', optional: true },
+  EVDS_EUR: { provider: 'evds', symbol: 'EUR', optional: true },
+  /** Piyasa Katılımcıları Anketi: 12 ay sonrası dolar/TL ve TÜFE beklentisi (aylık) */
+  EVDS_PKA_USD12: { provider: 'evds', symbol: 'PKA_USD12', fullRefresh: true, optional: true },
+  EVDS_PKA_CPI12: { provider: 'evds', symbol: 'PKA_CPI12', fullRefresh: true, optional: true },
 };
 
 /**
  * Bir varlığın TL birim fiyatının nasıl hesaplanacağı:
  * - product: kaynakların çarpımı × katsayı (perDate ile tarihe/ayara bağlı ek katsayı)
- * - deposit: politika faizinden günlük bileşik mevduat endeksi (ayarlardaki fark ve stopajla)
- * - cpi: TÜFE aylık değişimlerinden fiyat endeksi
+ * - deposit: günlük bileşik mevduat endeksi (ayarlardaki fark ve stopajla). Faiz olarak market kaynağı (bankaların
+ *   gerçek mevduat faizi) varsa o, yoksa source (politika faizi) kullanılır.
+ * - cpi: TÜFE aylık değişimlerinden fiyat endeksi; market varsa o, yoksa source
  * - stock: net temettü yeniden yatırılmış toplam getiri (fx verilirse TL'ye çevrilir)
  */
 export type AssetRecipe =
   | { type: 'product'; sources: string[]; factor: number; perDate?: (date: string, s: Settings) => number }
-  | { type: 'deposit'; source: string }
-  | { type: 'cpi'; source: string }
+  | { type: 'deposit'; source: string; market?: string }
+  | { type: 'cpi'; source: string; market?: string }
   | { type: 'stock'; source: string; market: 'us' | 'tr'; fx?: string };
 
 /**
@@ -60,8 +77,8 @@ export const ASSET_RECIPES: Record<AssetId, AssetRecipe> = {
   },
   USD: { type: 'product', sources: ['USDTRY=X'], factor: 1 },
   EUR: { type: 'product', sources: ['EURTRY=X'], factor: 1 },
-  FAIZ: { type: 'deposit', source: 'TCMB_POLICY' },
-  TUFE: { type: 'cpi', source: 'TCMB_CPI' },
+  FAIZ: { type: 'deposit', source: 'TCMB_POLICY', market: 'EVDS_DEPOSIT' },
+  TUFE: { type: 'cpi', source: 'TCMB_CPI', market: 'EVDS_CPI' },
 
   SPY: stock('SPY', 'us'),
   QQQ: stock('QQQ', 'us'),
@@ -92,5 +109,5 @@ export const TR_JUMP_THRESHOLD_PCT = 25;
 export function sourcesOf(recipe: AssetRecipe): string[] {
   if (recipe.type === 'product') return recipe.sources;
   if (recipe.type === 'stock') return recipe.fx ? [recipe.source, recipe.fx] : [recipe.source];
-  return [recipe.source];
+  return recipe.market ? [recipe.source, recipe.market] : [recipe.source];
 }
